@@ -1,0 +1,7 @@
+:80 {
+	root * /srv/static
+	file_server
+
+	@api path /v1/* /health /docs /docs/* /openapi.json
+	reverse_proxy @api api:8000
+}

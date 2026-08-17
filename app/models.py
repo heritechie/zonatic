@@ -20,3 +20,21 @@ class AdministrativeArea(Base):
     geometry: Mapped[object] = mapped_column(Geometry("MULTIPOLYGON", srid=4326), nullable=False)
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
 
+
+class PostalCode(Base):
+    __tablename__ = "postal_codes"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    code: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+
+
+class PostalCodeArea(Base):
+    __tablename__ = "postal_code_areas"
+
+    postal_code_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("postal_codes.id", ondelete="CASCADE"), primary_key=True
+    )
+    administrative_area_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("administrative_areas.id", ondelete="CASCADE"), primary_key=True
+    )

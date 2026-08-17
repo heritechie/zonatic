@@ -22,8 +22,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://zonatic:zonatic@db:5432/zonatic}
       APP_ENV: ${APP_ENV:-development}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
@@ -31,6 +31,16 @@ services:
       - ./app:/app/app:ro
       - ./examples:/app/examples:ro
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./static:/srv/static:ro
 
 volumes:
   postgres_data:

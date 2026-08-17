@@ -18,3 +18,30 @@ class ReverseGeocodeResponse(BaseModel):
     address: dict[str, Area | None]
     areas: list[Area]
 
+
+class AreaAutocompleteResult(BaseModel):
+    code: str
+    name: str
+    level: int = Field(ge=1, le=4)
+    breadcrumb: str
+
+
+class AreaAutocompleteResponse(BaseModel):
+    results: list[AreaAutocompleteResult]
+
+
+class PostalCodeResult(BaseModel):
+    code: str
+    metadata: dict[str, Any]
+
+
+class PostalCodeResponse(BaseModel):
+    code: str
+    metadata: dict[str, Any]
+    areas: list[Area]
+
+
+class AreaPostalCodesResponse(BaseModel):
+    code: str
+    name: str
+    postal_codes: list[PostalCodeResult]
