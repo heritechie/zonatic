@@ -64,11 +64,14 @@
         .showcase .label { color: var(--accent); }
         .showcase .title { color: white; }
         .showcase .desc { color: var(--slate-light); max-width: 480px; }
-        .showcase-steps { margin-top: 2.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-        .showcase-step { padding: 1.5rem; border-left: 2px solid rgba(255,255,255,0.1); }
-        .showcase-step-num { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-        .showcase-step h4 { font-size: 1rem; font-weight: 700; color: white; margin-bottom: 0.4rem; }
-        .showcase-step p { font-size: 0.88rem; color: #cbd5e1; line-height: 1.55; }
+        .showcase-flow { margin-top: 3rem; display: flex; align-items: stretch; gap: 0; }
+        .showcase-step { flex: 1; padding: 2rem 1.75rem; position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+        .showcase-step:first-child { border-radius: 12px 0 0 12px; }
+        .showcase-step:last-child { border-radius: 0 12px 12px 0; }
+        .showcase-step-num { display: inline-flex; width: 36px; height: 36px; border-radius: 50%; background: rgba(56,189,248,0.15); color: var(--accent); font-size: 0.85rem; font-weight: 700; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+        .showcase-step h4 { font-size: 1.05rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+        .showcase-step p { font-size: 0.88rem; color: #94a3b8; line-height: 1.6; }
+        .showcase-step + .showcase-step { border-left: none; }
         .showcase-cta { margin-top: 2.5rem; }
 
         .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
@@ -115,7 +118,11 @@
         .footer-links { display: flex; gap: 1.5rem; }
 
         @media (max-width: 768px) {
-            .showcase-steps { grid-template-columns: 1fr; }
+            .showcase-flow { flex-direction: column; gap: 0; }
+            .showcase-step { border-radius: 0 !important; border-left: 1px solid rgba(255,255,255,0.06); }
+            .showcase-step + .showcase-step { border-top: none; border-left: 1px solid rgba(255,255,255,0.06); }
+            .showcase-step:first-child { border-radius: 12px 12px 0 0 !important; }
+            .showcase-step:last-child { border-radius: 0 0 12px 12px !important; }
         }
         @media (max-width: 640px) {
             .nav-links { gap: 1rem; }
@@ -175,19 +182,19 @@
         <div class="label">Territory Builder</div>
         <h2 class="title" data-t="show_title">Define your operational areas using Indonesia's administrative boundaries.</h2>
         <p class="desc" data-t="show_desc">Select areas. Combine them into territories. Use those territories in your operations.</p>
-        <div class="showcase-steps">
+        <div class="showcase-flow">
             <div class="showcase-step">
-                <div class="showcase-step-num" data-t="ss1_num">Step 1</div>
+                <div class="showcase-step-num">1</div>
                 <h4 data-t="ss1_h">Select Areas</h4>
                 <p data-t="ss1_p">Choose administrative areas — provinces, cities, districts, or villages — that define your operational footprint.</p>
             </div>
             <div class="showcase-step">
-                <div class="showcase-step-num" data-t="ss2_num">Step 2</div>
+                <div class="showcase-step-num">2</div>
                 <h4 data-t="ss2_h">Combine into Territories</h4>
                 <p data-t="ss2_p">Group selected areas into balanced territories. Balance by workload, point density, or capacity.</p>
             </div>
             <div class="showcase-step">
-                <div class="showcase-step-num" data-t="ss3_num">Step 3</div>
+                <div class="showcase-step-num">3</div>
                 <h4 data-t="ss3_h">Deploy</h4>
                 <p data-t="ss3_p">Export territory definitions. Use them in your CRM, dispatch system, or field operations.</p>
             </div>
@@ -298,9 +305,9 @@ const T = {
         prob3: "<strong>No reusable system.</strong> Teams build one-off scripts or spreadsheets. When data changes, the process starts over.",
         show_title: "Define your operational areas using Indonesia's administrative boundaries.",
         show_desc: "Select areas. Combine them into territories. Use those territories in your operations.",
-        ss1_num: "Step 1", ss1_h: "Select Areas", ss1_p: "Choose administrative areas — provinces, cities, districts, or villages — that define your operational footprint.",
-        ss2_num: "Step 2", ss2_h: "Combine into Territories", ss2_p: "Group selected areas into balanced territories. Balance by workload, point density, or capacity.",
-        ss3_num: "Step 3", ss3_h: "Deploy", ss3_p: "Export territory definitions. Use them in your CRM, dispatch system, or field operations.",
+        ss1_h: "Select Areas", ss1_p: "Choose administrative areas — provinces, cities, districts, or villages — that define your operational footprint.",
+        ss2_h: "Combine into Territories", ss2_p: "Group selected areas into balanced territories. Balance by workload, point density, or capacity.",
+        ss3_h: "Deploy", ss3_p: "Export territory definitions. Use them in your CRM, dispatch system, or field operations.",
         show_cta: "Open Console",
         case_label: "Use Cases", case_title: "Built for teams that operate across Indonesia",
         case_desc: "Any organization that assigns people or resources to geographic areas can use Territory Builder.",
@@ -339,9 +346,9 @@ const T = {
         prob3: "<strong>Tidak ada sistem yang bisa dipakai ulang.</strong> Tim bikin script atau spreadsheet sendiri. Begitu data berubah, harus mulai dari nol lagi.",
         show_title: "Tentukan area operasional pakai batas administrasi Indonesia.",
         show_desc: "Pilih area. Gabung jadi wilayah. Pakai wilayah itu di operasional kamu.",
-        ss1_num: "Langkah 1", ss1_h: "Pilih Area", ss1_p: "Pilih wilayah administrasi — provinsi, kota, kecamatan, atau desa — yang jadi cakupan operasi kamu.",
-        ss2_num: "Langkah 2", ss2_h: "Gabung Jadi Wilayah", ss2_p: "Kelompokkan area yang dipilih jadi wilayah yang seimbang. Seimbangkan berdasarkan beban kerja, kepadatan titik, atau kapasitas.",
-        ss3_num: "Langkah 3", ss3_h: "Deploy", ss3_p: "Ekspor definisi wilayah. Pakai di CRM, sistem dispatch, atau operasi lapangan kamu.",
+        ss1_h: "Pilih Area", ss1_p: "Pilih wilayah administrasi — provinsi, kota, kecamatan, atau desa — yang jadi cakupan operasi kamu.",
+        ss2_h: "Gabung Jadi Wilayah", ss2_p: "Kelompokkan area yang dipilih jadi wilayah yang seimbang. Seimbangkan berdasarkan beban kerja, kepadatan titik, atau kapasitas.",
+        ss3_h: "Deploy", ss3_p: "Ekspor definisi wilayah. Pakai di CRM, sistem dispatch, atau operasi lapangan kamu.",
         show_cta: "Buka Console",
         case_label: "Contoh Pakai", case_title: "Cocok untuk tim yang operasi di seluruh Indonesia",
         case_desc: "Siapa saja yang tugaskan orang atau sumber daya ke wilayah geografis, bisa pakai Territory Builder.",
