@@ -1,22 +1,65 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_tenant
+from app.exceptions import (
+    AreaNotFoundError,
+    InvalidLevelError,
+    InvalidLimitError,
+    InvalidRequestError,
+    ZonaticException,
+)
 from app.schemas import (
     Area,
     AreaAutocompleteResponse,
     AreaAutocompleteResult,
+    AreaDetailData,
+    AreaDetailResponse,
     AreaPostalCodesResponse,
+    AreaSearchMeta,
+    AreaSearchResponse,
+    AreaSearchResult,
+    BreadcrumbItem,
     PostalCodeResponse,
     PostalCodeResult,
     ReverseGeocodeResponse,
 )
 
 LEVEL_KEYS = {1: "province", 2: "regency_or_city", 3: "district", 4: "village_or_ward"}
+
+LEVEL_NAMES = {1: "province", 2: "regency", 3: "district", 4: "village"}
+
+LEVEL_MAP = {"province": 1, "regency": 2, "district": 3, "village": 4}
+
+
+def _build_breadcrumb(db: Session, parent_code: str | None) -> list[BreadcrumbItem]:
+    """Build breadcrumb by walking parent_code chain. Reused by lookup and search."""
+    breadcrumb: list[dict[str, str]] = []
+    current = parent_code
+    for _ in range(4):
+        if current is None:
+            break
+        row = db.execute(
+            text(
+                "SELECT code, name, level, parent_code FROM administrative_areas WHERE code = :code"
+            ),
+            {"code": current},
+        ).mappings().first()
+        if row is None:
+            break
+        breadcrumb.append(
+            {"code": row["code"], "name": row["name"], "level": LEVEL_NAMES[row["level"]]}
+        )
+        current = row["parent_code"]
+    breadcrumb.reverse()
+    return [BreadcrumbItem(**item) for item in breadcrumb]
 
 
 @asynccontextmanager
@@ -36,6 +79,25 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://console.zonatic.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(ZonaticException)
+async def zonatic_exception_handler(request: Request, exc: ZonaticException) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.code, "message": exc.message}},
+    )
 
 
 @app.get("/docs", include_in_schema=False)
@@ -177,18 +239,110 @@ def autocomplete_areas(
 
 
 @app.get(
+    "/v1/areas/search",
+    response_model=AreaSearchResponse,
+    tags=["Areas"],
+    summary="Search administrative areas",
+)
+def search_areas(
+    q: str | None = Query(None, description="Search keyword (area name prefix)"),
+    level: str | None = Query(None, description="Filter by level: province, regency, district, village"),
+    parent_code: str | None = Query(None, description="Filter by direct parent code"),
+    limit: str | None = Query(None, description="Maximum number of results"),
+    tenant_id: int = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+) -> AreaSearchResponse:
+    """Search administrative areas by name prefix.
+
+    Returns matching areas with their full administrative breadcrumb.
+    Supports case-insensitive prefix matching with optional level and
+    parent filters. Requires a valid API key.
+    """
+    if q is None or q == "":
+        raise InvalidRequestError("Parameter 'q' wajib diberikan dan tidak boleh kosong.")
+
+    if limit is None:
+        limit_int = 20
+    else:
+        try:
+            limit_int = int(limit)
+        except (ValueError, TypeError):
+            raise InvalidLimitError()
+        if limit_int < 1 or limit_int > 100:
+            raise InvalidLimitError()
+
+    level_int: int | None = None
+    if level is not None:
+        level_int = LEVEL_MAP.get(level)
+        if level_int is None:
+            raise InvalidLevelError()
+
+    if parent_code is not None and parent_code != "":
+        exists = db.execute(
+            text("SELECT 1 FROM administrative_areas WHERE code = :code"),
+            {"code": parent_code},
+        ).first()
+        if exists is None:
+            raise AreaNotFoundError()
+
+    where_clauses = ["name ILIKE :pattern"]
+    params: dict = {"pattern": f"{q}%", "limit": limit_int}
+
+    if level_int is not None:
+        where_clauses.append("level = :level")
+        params["level"] = level_int
+    if parent_code is not None and parent_code != "":
+        where_clauses.append("parent_code = :parent_code")
+        params["parent_code"] = parent_code
+
+    where_sql = " AND ".join(where_clauses)
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT code, name, level, parent_code
+            FROM administrative_areas
+            WHERE {where_sql}
+            ORDER BY level ASC, name ASC
+            LIMIT :limit
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    results: list[AreaSearchResult] = []
+    for row in rows:
+        breadcrumb = _build_breadcrumb(db, row["code"])
+        results.append(
+            AreaSearchResult(
+                code=row["code"],
+                name=row["name"],
+                level=LEVEL_NAMES[row["level"]],
+                breadcrumb=breadcrumb,
+            )
+        )
+
+    return AreaSearchResponse(
+        data=results,
+        meta=AreaSearchMeta(limit=limit_int, count=len(results)),
+    )
+
+
+@app.get(
     "/v1/areas/{code}",
-    response_model=Area,
+    response_model=AreaDetailResponse,
     tags=["Areas"],
     summary="Get an administrative area by code",
 )
-def get_area(code: str, db: Session = Depends(get_db)) -> Area:
-    """Retrieve a single administrative area by its official code.
+def get_area(
+    code: str,
+    tenant_id: int = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+) -> AreaDetailResponse:
+    """Retrieve a single administrative area by its canonical code.
 
-    Area codes follow Indonesia's administrative hierarchy:
-    province (e.g. 31), regency/city (e.g. 31.71),
-    district (e.g. 31.71.01), village/ward (e.g. 31.71.01.1001).
-    Returns 404 if the code does not exist.
+    Returns the area with its full administrative breadcrumb (province →
+    regency → district → village). Requires a valid API key.
     """
     row = db.execute(
         text(
@@ -200,9 +354,20 @@ def get_area(code: str, db: Session = Depends(get_db)) -> Area:
         ),
         {"code": code},
     ).mappings().first()
+
     if row is None:
-        raise HTTPException(status_code=404, detail="Wilayah tidak ditemukan")
-    return Area(**row)
+        raise AreaNotFoundError()
+
+    breadcrumb = _build_breadcrumb(db, row["code"])
+
+    return AreaDetailResponse(
+        data=AreaDetailData(
+            code=row["code"],
+            name=row["name"],
+            level=LEVEL_NAMES[row["level"]],
+            breadcrumb=breadcrumb,
+        )
+    )
 
 
 @app.get(

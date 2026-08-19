@@ -45,3 +45,37 @@ class AreaPostalCodesResponse(BaseModel):
     code: str
     name: str
     postal_codes: list[PostalCodeResult]
+
+
+class BreadcrumbItem(BaseModel):
+    code: str
+    name: str
+    level: str
+
+
+class AreaDetailData(BaseModel):
+    code: str
+    name: str
+    level: str
+    breadcrumb: list[BreadcrumbItem]
+
+
+class AreaDetailResponse(BaseModel):
+    data: AreaDetailData
+
+
+class AreaSearchResult(BaseModel):
+    code: str
+    name: str
+    level: str
+    breadcrumb: list[BreadcrumbItem]
+
+
+class AreaSearchMeta(BaseModel):
+    limit: int
+    count: int
+
+
+class AreaSearchResponse(BaseModel):
+    data: list[AreaSearchResult]
+    meta: AreaSearchMeta
