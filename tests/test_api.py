@@ -6,6 +6,13 @@ from app.main import LEVEL_KEYS, app
 
 client = TestClient(app)
 
+# Test API key from conftest.py
+DEV_KEY = "zn_test_devkey1234"
+
+
+def _auth_header() -> dict[str, str]:
+    return {"Authorization": f"Bearer {DEV_KEY}"}
+
 
 def _reset_db():
     with SessionLocal() as db:
@@ -172,7 +179,7 @@ def test_autocomplete_case_insensitive():
 
 def test_postal_code_lookup():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/10270")
+    resp = client.get("/v1/postal-codes/10270", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data["code"] == "10270"
@@ -183,13 +190,13 @@ def test_postal_code_lookup():
 
 def test_postal_code_lookup_not_found():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/99999")
+    resp = client.get("/v1/postal-codes/99999", headers=_auth_header())
     assert resp.status_code == 404
 
 
 def test_postal_code_search_by_code():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "102"})
+    resp = client.get("/v1/postal-codes/search", params={"q": "102"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     codes = [pc["code"] for pc in data]
@@ -199,7 +206,7 @@ def test_postal_code_search_by_code():
 
 def test_postal_code_search_by_area_name():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "Gelora"})
+    resp = client.get("/v1/postal-codes/search", params={"q": "Gelora"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     codes = [pc["code"] for pc in data]
@@ -208,7 +215,7 @@ def test_postal_code_search_by_area_name():
 
 def test_postal_code_search_no_results():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "zzz"})
+    resp = client.get("/v1/postal-codes/search", params={"q": "zzz"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data == []
@@ -216,7 +223,7 @@ def test_postal_code_search_no_results():
 
 def test_postal_code_search_limit():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "10", "limit": 1})
+    resp = client.get("/v1/postal-codes/search", params={"q": "10", "limit": 1}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) <= 1
@@ -224,7 +231,7 @@ def test_postal_code_search_limit():
 
 def test_area_postal_codes():
     _setup_fixtures()
-    resp = client.get("/v1/areas/31.71.01.1001/postal-codes")
+    resp = client.get("/v1/areas/31.71.01.1001/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data["code"] == "31.71.01.1001"
@@ -235,7 +242,7 @@ def test_area_postal_codes():
 
 def test_area_postal_codes_parent():
     _setup_fixtures()
-    resp = client.get("/v1/areas/31.71.01/postal-codes")
+    resp = client.get("/v1/areas/31.71.01/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data["code"] == "31.71.01"
@@ -245,13 +252,13 @@ def test_area_postal_codes_parent():
 
 def test_area_postal_codes_not_found():
     _setup_fixtures()
-    resp = client.get("/v1/areas/99.99.99/postal-codes")
+    resp = client.get("/v1/areas/99.99.99/postal-codes", headers=_auth_header())
     assert resp.status_code == 404
 
 
 def test_area_postal_codes_empty():
     _setup_fixtures()
-    resp = client.get("/v1/areas/31/postal-codes")
+    resp = client.get("/v1/areas/31/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data["postal_codes"] == []

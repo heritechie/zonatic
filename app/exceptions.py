@@ -36,3 +36,8 @@ class InvalidLevelError(ZonaticException):
 class InvalidLimitError(ZonaticException):
     def __init__(self) -> None:
         super().__init__(status_code=400, code="INVALID_LIMIT", message="Limit tidak valid. Gunakan angka 1-100.")
+
+
+class PostalCodeNotFoundException(ZonaticException):
+    def __init__(self) -> None:
+        super().__init__(status_code=404, code="POSTAL_CODE_NOT_FOUND", message="Kode pos tidak ditemukan")

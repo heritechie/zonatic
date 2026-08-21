@@ -14,6 +14,7 @@ from app.exceptions import (
     InvalidLevelError,
     InvalidLimitError,
     InvalidRequestError,
+    PostalCodeNotFoundException,
     ZonaticException,
 )
 from app.schemas import (
@@ -379,6 +380,7 @@ def get_area(
 def search_postal_codes(
     q: str = Query(..., min_length=1, description="Search keyword (postal code or area name)"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    tenant_id: int = Depends(get_current_tenant),
     db: Session = Depends(get_db),
 ) -> list[PostalCodeResult]:
     """Search postal codes by code or associated administrative area name.
@@ -410,7 +412,11 @@ def search_postal_codes(
     tags=["Postal Codes"],
     summary="Get a postal code and its areas",
 )
-def get_postal_code(code: str, db: Session = Depends(get_db)) -> PostalCodeResponse:
+def get_postal_code(
+    code: str,
+    tenant_id: int = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+) -> PostalCodeResponse:
     """Look up a postal code and all administrative areas it covers.
 
     Returns the postal code metadata and a list of associated administrative
@@ -427,7 +433,7 @@ def get_postal_code(code: str, db: Session = Depends(get_db)) -> PostalCodeRespo
         {"code": code},
     ).mappings().first()
     if pc_row is None:
-        raise HTTPException(status_code=404, detail="Kode pos tidak ditemukan")
+        raise PostalCodeNotFoundException()
 
     area_rows = db.execute(
         text(
@@ -457,7 +463,11 @@ def get_postal_code(code: str, db: Session = Depends(get_db)) -> PostalCodeRespo
     tags=["Areas"],
     summary="Get postal codes for an area",
 )
-def get_area_postal_codes(code: str, db: Session = Depends(get_db)) -> AreaPostalCodesResponse:
+def get_area_postal_codes(
+    code: str,
+    tenant_id: int = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+) -> AreaPostalCodesResponse:
     """List all postal codes associated with an administrative area.
 
     Returns the area name and all postal codes that cover it.
@@ -475,7 +485,7 @@ def get_area_postal_codes(code: str, db: Session = Depends(get_db)) -> AreaPosta
         {"code": code},
     ).mappings().first()
     if area_row is None:
-        raise HTTPException(status_code=404, detail="Wilayah tidak ditemukan")
+        raise AreaNotFoundError()
 
     pc_rows = db.execute(
         text(
