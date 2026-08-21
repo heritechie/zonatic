@@ -40,6 +40,43 @@ curl --fail 'http://localhost:8000/v1/reverse-geocode?latitude=-6.19&longitude=1
 
 Use `docker compose down` to stop the environment. Do not run `docker compose down -v` unless the user has explicitly approved recreating the local database volume.
 
+## Development workflow
+
+Development is incremental and phase-based.
+
+For each feature:
+
+1. Read the relevant product and feature documentation.
+2. Inspect the existing implementation before changing it.
+3. Produce an implementation plan before coding when the feature spans multiple files or components.
+4. Implement one slice at a time.
+5. Run focused tests for the slice.
+6. Verify real API behavior when applicable.
+7. Review the database state when database changes are involved.
+8. Review `git diff` and `git status`.
+9. Run the relevant regression suite.
+10. Verify the phase acceptance criteria before moving to the next phase.
+
+Do not implement an entire phase as one uncontrolled change.
+
+Do not start the next phase while the current phase has unresolved blockers.
+
+When verification fails, stop and report the failure. Do not automatically continue to the next phase.
+
+### Phase completion criteria
+
+A phase is complete only when:
+
+- implementation is complete;
+- acceptance criteria are verified;
+- automated tests pass;
+- real-data verification passes when applicable;
+- no critical regressions remain;
+- database state is verified when applicable;
+- git scope has been reviewed.
+
+Manual API verification does not replace automated tests when automated tests are part of the acceptance criteria.
+
 ## Database and spatial rules
 
 ### Coordinate system
@@ -62,12 +99,12 @@ Keep the GiST index on spatial geometry columns. Do not replace PostGIS spatial 
 
 `administrative_areas.level` is fixed:
 
-| Level | Area |
-| --- | --- |
-| 1 | Province |
-| 2 | Regency/city |
-| 3 | District (kecamatan) |
-| 4 | Village/ward (desa/kelurahan) |
+| Level | Area                          |
+| ----- | ----------------------------- |
+| 1     | Province                      |
+| 2     | Regency/city                  |
+| 3     | District (kecamatan)          |
+| 4     | Village/ward (desa/kelurahan) |
 
 `code` is a stable identifier. Use it for joins, imports, and hierarchy references; never use display names as identifiers.
 
@@ -137,6 +174,120 @@ For field-location features, collect location only on an explicit action with co
 - Update `README.md` when commands, environment variables, endpoints, or data import behavior changes.
 - Add focused tests for new behavior. At minimum, verify both success and no-match/invalid paths for spatial endpoints.
 - Do not add heavyweight geospatial Python dependencies unless they solve a requirement that PostGIS and the standard library cannot handle.
+
+## Development workflow
+
+Development is incremental and phase-based.
+
+For each feature:
+
+1. Read relevant product/feature documentation.
+2. Inspect existing implementation.
+3. Plan before coding when the change spans multiple files/components.
+4. Implement one slice at a time.
+5. Run focused tests.
+6. Verify real API behavior when applicable.
+7. Verify database state when applicable.
+8. Review git diff/status.
+9. Run regression tests.
+10. Verify acceptance criteria before moving to the next phase.
+
+Do not start the next phase while the current phase has unresolved blockers.
+
+Manual API verification does not replace automated tests when tests are part of the acceptance criteria.
+
+## Test and database safety
+
+### Protected database
+
+Treat the `zonatic` database as protected production data.
+
+Never run destructive tests or destructive fixtures against `zonatic`.
+
+Destructive operations include:
+
+- `DELETE`
+- `TRUNCATE`
+- `DROP`
+- schema recreation
+- database reset
+- fixture-based data replacement
+
+### Approved test databases
+
+Tests must use one of these databases:
+
+- `zonatic_test`
+- `zonatic_ci`
+
+Tests must never silently fall back to `zonatic`.
+
+The test runtime must verify the actual PostgreSQL database identity before destructive fixtures execute.
+
+If tests target `zonatic`, abort immediately with a clear error message.
+
+### Test execution
+
+To run tests:
+
+```bash
+# From host with .venv activated
+source .venv/bin/activate
+DATABASE_URL="postgresql+psycopg://zonatic:change-me-in-production@localhost:5432/zonatic_test" pytest tests/
+
+# Or set environment variable
+export DATABASE_URL="postgresql+psycopg://zonatic:change-me-in-production@localhost:5432/zonatic_test"
+pytest tests/
+```
+
+The test suite includes a hard safety guard in `tests/conftest.py` that queries the actual PostgreSQL database name and refuses to run against `zonatic`.
+
+## Import safety
+
+Before real-data imports:
+
+1. Verify target database.
+2. Verify dataset source/version.
+3. Run dry-run when supported.
+4. Confirm validation succeeds.
+5. Perform actual import only after successful validation.
+
+Do not automatically delete existing development/production data as part of an import.
+
+Prefer transactional/all-or-nothing imports.
+
+After import, verify:
+
+- Row counts by level
+- Hierarchy integrity (no orphaned areas)
+- Canonical identifiers (code lengths, no dotted codes)
+- Source and data version metadata
+- Import run status
+- API behavior with real data
+
+## Git scope
+
+Preserve unrelated user changes.
+
+Before making changes:
+
+```bash
+git status
+git diff --stat
+```
+
+Do not revert, delete, stage, or commit unrelated work.
+
+Before a phase commit:
+
+- Review staged files
+- Confirm all staged files belong to the phase
+- Keep unrelated work unstaged
+- Review final diff
+- Run relevant tests
+- Verify acceptance criteria
+
+Do not commit automatically unless explicitly requested.
 
 ## Safety
 
