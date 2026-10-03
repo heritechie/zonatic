@@ -6,7 +6,10 @@
   "scripts": {
     "dev:console": "pnpm --filter @zonatic/console dev",
     "dev:console-api": "pnpm --filter @zonatic/console-api dev",
+    "dev:web": "pnpm --filter @zonatic/web dev",
     "build:console": "pnpm --filter @zonatic/console build",
-    "build:console-api": "pnpm --filter @zonatic/console-api build"
+    "build:console-api": "pnpm --filter @zonatic/console-api build",
+    "build:web": "pnpm --filter @zonatic/web build",
+    "lint:web": "pnpm --filter @zonatic/web lint"
   }
 }

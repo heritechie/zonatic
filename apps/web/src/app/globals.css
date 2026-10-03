@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 design tokens via @theme.
+ * Colors are exposed as CSS variables so utilities like `bg-emerald-600`
+ * and `text-navy-900` resolve correctly throughout the app.
+ *
+ * Palette intent:
+ *   - white / off-white surface
+ *   - navy primary typography
+ *   - emerald green accent (Zonatic primary)
+ *   - subtle green map visuals
+ */
+@theme {
+  --color-white: #ffffff;
+
+  --color-navy-50: #f5f7fb;
+  --color-navy-100: #e6ebf5;
+  --color-navy-200: #c9d3e6;
+  --color-navy-300: #94a3b8;
+  --color-navy-400: #64748b;
+  --color-navy-500: #475569;
+  --color-navy-600: #334155;
+  --color-navy-700: #1e293b;
+  --color-navy-800: #0f1e36;
+  --color-navy-900: #0a1628;
+
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+/*
+ * Base typography and focus styles.
+ */
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0a1628;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessible default focus ring. */
+:focus-visible {
+  outline: 2px solid var(--color-emerald-600);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Selection styling. */
+::selection {
+  background-color: var(--color-emerald-200);
+  color: var(--color-navy-900);
+}
+
+/*
+ * Reduced motion: disable transitions and keyframe animations.
+ * Implemented globally so any future component that adds motion
+ * automatically respects user preference.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Subtle entry animation used by section wrappers.
+ * Two keyframes provide a gentle fade + lift.
+ */
+@keyframes zonatic-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.zonatic-fade-in {
+  animation: zonatic-fade-in 0.6s ease-out both;
+}
+
+/*
+ * Pulse used by mock map location points.
+ */
+@keyframes zonatic-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+.zonatic-pulse {
+  animation: zonatic-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
