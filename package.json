@@ -1,0 +1,12 @@
+{
+  "name": "zonatic",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:console": "pnpm --filter @zonatic/console dev",
+    "dev:console-api": "pnpm --filter @zonatic/console-api dev",
+    "build:console": "pnpm --filter @zonatic/console build",
+    "build:console-api": "pnpm --filter @zonatic/console-api build"
+  }
+}

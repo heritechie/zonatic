@@ -32,6 +32,36 @@ services:
       - ./examples:/app/examples:ro
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  console:
+    build:
+      context: .
+      dockerfile: apps/console/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_GRAPHQL_URL: http://localhost:8001/graphql
+    volumes:
+      - ./apps/console/src:/app/apps/console/src
+    depends_on:
+      - console-api
+
+  console-api:
+    build:
+      context: .
+      dockerfile: apps/console-api/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://zonatic:zonatic@db:5432/zonatic}
+      PORT: "8000"
+      NODE_ENV: development
+      CORS_ORIGINS: http://localhost:5173,http://localhost:80
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./apps/console-api/src:/app/apps/console-api/src
+
   caddy:
     image: caddy:2-alpine
     ports:
