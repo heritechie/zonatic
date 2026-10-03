@@ -18,6 +18,9 @@ out/
 # production
 dist/
 
+# cloudflare workers (wrangler local state)
+.wrangler/
+
 # misc
 .DS_Store
 *.pem

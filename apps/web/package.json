@@ -30,6 +30,7 @@
     "eslint": "^9.0.0",
     "eslint-plugin-jsx-a11y": "^6.10.0",
     "eslint-plugin-react": "^7.37.0",
-    "eslint-plugin-react-hooks": "^7.0.0"
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "wrangler": "^4.147.0"
   }
 }
