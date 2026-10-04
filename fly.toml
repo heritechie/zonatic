@@ -1,0 +1,74 @@
+# Fly.io configuration for `zonatic-console`.
+#
+# Temporary hosting while GCP billing/payment is unavailable. The runtime
+# contract is the same `apps/console/Dockerfile.prod` already used for Cloud
+# Run, so moving back to Cloud Run later is a swap of hosting provider, not a
+# code change.
+#
+# No secret material is stored in this file. Build-time Vite values are
+# pulled from `fly secrets` via the `$NAME` substitution syntax; runtime
+# secrets (DATABASE_URL, SUPABASE_*) are also `fly secrets`, never `fly.toml`.
+
+app = "zonatic-console"
+primary_region = "sin"
+
+# Fly terminates TLS at the edge and forwards plain HTTP to internal_port.
+# The Caddy process inside the container listens on :8080 (its PORT env),
+# serves the static SPA, and reverse-proxies /graphql to the loopback
+# console-api on :8000. Port 8000 is intentionally NOT published.
+internal_port = 8080
+
+[build]
+  dockerfile = "apps/console/Dockerfile.prod"
+
+# Vite inlines these into the JS bundle at build time. The actual literals
+# come from `fly secrets` — never from this file. `$NAME` is Fly's
+# substitution syntax for secrets during build.
+[build.args]
+  VITE_SUPABASE_URL = "$SUPABASE_URL"
+  VITE_SUPABASE_ANON_KEY = "$SUPABASE_ANON_KEY"
+  VITE_GRAPHQL_URL = "/graphql"
+  VITE_CONSOLE_URL = "https://console.zonatic.id"
+  VITE_SITE_URL = "https://zonatic.id"
+
+[env]
+  # Non-secret runtime values. NODE_ENV is also baked into the runtime image
+  # (Dockerfile.prod line 76); declaring it here is documentation, not a
+  # behavioural change. CONSOLE_API_PORT is the *internal* port used by the
+  # Caddyfile reverse-proxy and by `node /srv/api/dist/server.js`; the image
+  # already defaults it to 8000.
+  NODE_ENV = "production"
+  CONSOLE_API_PORT = "8000"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  auto_stop_machines = false
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  # TCP probe verifies Caddy is listening. Path "/" answers 200 from the SPA
+  # fallback once Caddy is up, sidestepping the brief window where Node
+  # console-api is still binding to 8000 (/graphql could 502 on first hit).
+  [[services.tcp_checks]]
+    grace_period = "10s"
+    interval = "15s"
+    timeout = "2s"
+
+  [[services.http_checks]]
+    path = "/"
+    grace_period = "10s"
+    interval = "30s"
+    timeout = "5s"
