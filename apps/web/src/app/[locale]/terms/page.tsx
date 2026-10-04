@@ -74,11 +74,6 @@ export default async function TermsPage({
                 {page.contact.title}
               </h3>
               <p className="mt-2 leading-6">{page.contact.body}</p>
-              <ul className="mt-3 space-y-1 text-navy-600">
-                <li>{page.placeholders.entity}</li>
-                <li>{page.placeholders.jurisdiction}</li>
-                <li>{page.placeholders.email}</li>
-              </ul>
             </div>
           </div>
         </section>

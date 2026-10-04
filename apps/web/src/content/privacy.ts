@@ -47,10 +47,10 @@ export const privacy: Record<Locale, PrivacyContent> = {
         body:
           "Informasi yang Zonatic kumpulkan bergantung pada cara Customer dan User menggunakan Layanan. Informasi tersebut dapat mencakup empat kategori berikut:",
         list: [
-          "**Account Data** — informasi yang diberikan saat membuat atau menggunakan akun serta Workspace, misalnya nama, email, informasi autentikasi yang diperlukan Zonatic, dan informasi Workspace.",
-          "**Service & Usage Data** — data teknis dan operasional yang diperlukan untuk menjalankan dan mengamankan Layanan, seperti waktu request, endpoint atau operasi yang dipanggil, status atau error, identifier atau metadata API Key, alamat IP, dan informasi keamanan atau audit.",
-          "**Customer Data** — data yang dikirimkan Customer ke Zonatic melalui API atau Console, seperti lintang-bujur, alamat, referensi eksternal, CSV, GeoJSON, coverage, territory, atau data geografis lain yang diproses atas instruksi atau konfigurasi Customer.",
-          "**Device Location** — untuk fitur tertentu yang relevan, termasuk Field Location Verification, Zonatic dapat memproses lokasi perangkat ketika pengguna melakukan tindakan yang relevan dan memberikan izin yang diperlukan. Layanan tidak dirancang untuk continuous location tracking sebagai perilaku default, dan tidak semua penggunaan Layanan melibatkan pemrosesan lokasi perangkat.",
+          "Account Data — informasi yang diberikan saat membuat atau menggunakan akun serta Workspace, misalnya nama, email, informasi autentikasi yang diperlukan Zonatic, dan informasi Workspace.",
+          "Service & Usage Data — data teknis dan operasional yang diperlukan untuk menjalankan dan mengamankan Layanan, seperti waktu request, endpoint atau operasi yang dipanggil, status atau error, identifier atau metadata API Key, alamat IP, dan informasi keamanan atau audit.",
+          "Customer Data — data yang dikirimkan Customer ke Zonatic melalui API atau Console, seperti lintang-bujur, alamat, referensi eksternal, CSV, GeoJSON, coverage, territory, atau data geografis lain yang diproses atas instruksi atau konfigurasi Customer.",
+          "Device Location — untuk fitur tertentu yang relevan, termasuk Field Location Verification, Zonatic dapat memproses lokasi perangkat ketika pengguna melakukan tindakan yang relevan dan memberikan izin yang diperlukan. Layanan tidak dirancang untuk continuous location tracking sebagai perilaku default, dan tidak semua penggunaan Layanan melibatkan pemrosesan lokasi perangkat.",
         ],
       },
       {
@@ -136,10 +136,10 @@ export const privacy: Record<Locale, PrivacyContent> = {
         body:
           "The information Zonatic collects depends on how Customers and Users use the Services. The information Zonatic processes may include the following four categories:",
         list: [
-          "**Account Data** — information provided when creating or using an account and a Workspace, such as name, email, the authentication information required by Zonatic, and Workspace information.",
-          "**Service and Usage Data** — technical and operational data needed to run and secure the Services, such as request time, the endpoint or operation called, status or error information, API Key identifiers or metadata, IP address, and security or audit information.",
-          "**Customer Data** — data submitted by Customers to Zonatic through the API or Console, such as latitude/longitude coordinates, addresses, external references, CSV or GeoJSON files, coverage, territories, or other geographic data processed at the Customer's instruction or configuration.",
-          "**Device Location** — for certain relevant features, including Field Location Verification, Zonatic may process device location when the user takes an action that requires it and grants the necessary permission. The Services are not designed for continuous location tracking as a default behaviour, and not every use of the Services involves the processing of device location.",
+          "Account Data — information provided when creating or using an account and a Workspace, such as name, email, the authentication information required by Zonatic, and Workspace information.",
+          "Service and Usage Data — technical and operational data needed to run and secure the Services, such as request time, the endpoint or operation called, status or error information, API Key identifiers or metadata, IP address, and security or audit information.",
+          "Customer Data — data submitted by Customers to Zonatic through the API or Console, such as latitude/longitude coordinates, addresses, external references, CSV or GeoJSON files, coverage, territories, or other geographic data processed at the Customer's instruction or configuration.",
+          "Device Location — for certain relevant features, including Field Location Verification, Zonatic may process device location when the user takes an action that requires it and grants the necessary permission. The Services are not designed for continuous location tracking as a default behaviour, and not every use of the Services involves the processing of device location.",
         ],
       },
       {

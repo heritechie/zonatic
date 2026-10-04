@@ -72,11 +72,6 @@ export default async function PrivacyPage({
                 {page.contact.title}
               </h3>
               <p className="mt-2 leading-6">{page.contact.body}</p>
-              <ul className="mt-3 space-y-1 text-navy-600">
-                <li>{page.placeholders.entity}</li>
-                <li>{page.placeholders.email}</li>
-                <li>{page.placeholders.address}</li>
-              </ul>
             </div>
           </div>
         </section>
