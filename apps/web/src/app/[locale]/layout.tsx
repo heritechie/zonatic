@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { getContent } from "@/content";
+import { buildMetadata } from "@/lib/seo";
 
 /**
  * Locale-scoped layout.
@@ -8,6 +9,9 @@ import { getContent } from "@/content";
  * attribute is sourced from the content tree so the right language
  * is reflected at the document level (screen readers, browser
  * translation prompts, Open Graph locale, etc.).
+ *
+ * The Indonesian default language is *also* served from the site root by
+ * `app/(default)/layout.tsx`, which owns the document shell for that route.
  */
 export async function generateMetadata({
   params,
@@ -17,69 +21,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const content = getContent(locale);
 
-  return {
-    metadataBase: new URL(content.meta.siteUrl),
-    title: {
-      default: content.meta.title,
-      template: `%s | ${content.nav.brand}`,
-    },
-    description: content.meta.description,
-    applicationName: content.nav.brand,
-    keywords: [
-      "Location Intelligence",
-      "Territories",
-      "Location Data",
-      "Geographic Infrastructure",
-      "Indonesia",
-      "Reverse Geocoding",
-    ],
-    authors: [{ name: content.nav.brand }],
-    creator: content.nav.brand,
-    publisher: content.nav.brand,
-    robots: { index: true, follow: true },
-    alternates: {
-      canonical: `${content.meta.siteUrl}/${locale}/`,
-      languages: {
-        "id-ID": `${content.meta.siteUrl}/id/`,
-        en: `${content.meta.siteUrl}/en/`,
-      },
-    },
-    openGraph: {
-      type: "website",
-      locale: content.meta.ogLocale,
-      url: `${content.meta.siteUrl}/${locale}/`,
-      siteName: content.nav.brand,
-      title: content.meta.title,
-      description: content.meta.description,
-      alternateLocale:
-        content.meta.ogLocale === "id_ID" ? ["en_ID"] : ["id_ID"],
-      // Brand-approved Open Graph image (PNG/WebP). If the file is
-      // missing the page still renders; social crawlers fall back
-      // to the page description.
-      images: [
-        {
-          url: `${content.meta.siteUrl}/assets/social/og-image.webp`,
-          width: 1200,
-          height: 630,
-          alt: content.meta.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: content.meta.title,
-      description: content.meta.description,
-      images: [`${content.meta.siteUrl}/assets/social/og-image.webp`],
-    },
-    icons: {
-      icon: [
-        {
-          url: `${content.meta.siteUrl}/favicon.svg`,
-          type: "image/svg+xml",
-        },
-      ],
-    },
-  };
+  return buildMetadata(content, content.locale);
 }
 
 export const viewport: Viewport = {

@@ -1,26 +1,20 @@
-import {
-  Coins,
-  Store,
-  Wrench,
-  ShieldCheck,
-  ShoppingBasket,
-  Truck,
-  type LucideIcon,
-} from "lucide-react";
+import { Coins, Store, Target, Truck, type LucideIcon } from "lucide-react";
 import type { Content } from "@/content";
 
 const ICONS: Record<string, LucideIcon> = {
   coins: Coins,
   store: Store,
-  wrench: Wrench,
-  "shield-check": ShieldCheck,
-  "shopping-basket": ShoppingBasket,
   truck: Truck,
+  target: Target,
 };
 
 /**
- * Six use-case cards. Two-row × three-column compact grid so each
- * card stays short and the section reads as one band.
+ * Four use-case cards in a single row on lg.
+ *
+ * Reduced from six to four and from a 3-column grid to 4 columns: the
+ * section is context for the product story above it, not a catalogue, so it
+ * should be scannable in one line and no longer than the sections it
+ * follows.
  *
  * Use-case cards describe examples of how customers may apply
  * Zonatic — they are NOT Zonatic's product scope.
@@ -31,7 +25,7 @@ export function UseCases({ content }: { content: Content }) {
     <section
       id="use-cases"
       aria-labelledby="use-cases-headline"
-      className="bg-white py-20 sm:py-28"
+      className="bg-white py-20 sm:py-24 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
@@ -49,7 +43,7 @@ export function UseCases({ content }: { content: Content }) {
           </p>
         </div>
 
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {u.cases.map((useCase) => {
             const Icon = ICONS[useCase.iconKey] ?? Coins;
             return (

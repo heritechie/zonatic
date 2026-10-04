@@ -151,3 +151,142 @@ body {
   animation: zonatic-pulse 2.4s ease-in-out infinite;
   transform-origin: center;
 }
+
+/*
+ * Decorative Indonesia outline for the final CTA.
+ *
+ * The map is a supporting graphic, not a focal image: the headline, body copy
+ * and buttons must always out-read it. Everything that decides how prominent
+ * it looks is a CSS variable, so the treatment can be retuned without touching
+ * the component or the artwork:
+ *
+ *   --map-width    box width, as a % of the section (NOT a background-size)
+ *   --map-opacity  group opacity; the single strongest lever on dominance
+ *   --map-scale    extra scale about the right edge, for optical nudging
+ *   --map-x        horizontal offset from the right edge; negative bleeds out
+ *   --map-y        vertical anchor; 50% centres the box on the section
+ *
+ * Contain, never cover. The box is sized by width and its height is derived
+ * from the asset's true 2:1 ratio, so `object-fit: contain` can never crop the
+ * silhouette. A cover-sized box would clip the archipelago top and bottom,
+ * which is what made the previous treatment read as a cropped background
+ * image.
+ *
+ * The bitmap is a near-black panel with brighter contour line-work, framed by
+ * a ~10px white border on the top and bottom edges. `contrast()` pivots the
+ * panel to pure black and the line-work to white; `screen` blending then maps
+ * pure black back to exactly the background, so the panel is invisible while
+ * the line-work survives. The white frame does not, which is why the vertical
+ * mask fades the outer 3% — enough to erase it, far less than the artwork's
+ * own margin, so no part of the silhouette is lost.
+ *
+ * At 1440x470 the composited line-work lands around luminance 115 against a
+ * background of 74, i.e. roughly a quarter of the contrast of the white
+ * headline. Both horizontal edges fade so the box has no readable border, and
+ * the small right bleed dissolves instead of being sliced off.
+ */
+.zonatic-map {
+  --map-width: 48%;
+  --map-opacity: 0.26;
+  --map-scale: 1;
+  --map-x: -2%;
+  --map-y: 50%;
+  --map-bottom: auto;
+
+  position: absolute;
+  top: var(--map-y);
+  bottom: var(--map-bottom);
+  right: var(--map-x);
+  width: var(--map-width);
+  height: auto;
+  /* Locks the box to the artwork's ratio so `contain` never crops. */
+  aspect-ratio: 2 / 1;
+  object-fit: contain;
+  max-width: none;
+
+  transform: translateY(-50%) scale(var(--map-scale));
+  transform-origin: right center;
+  opacity: var(--map-opacity);
+
+  mix-blend-mode: screen;
+  filter: contrast(2.2) brightness(1.25);
+
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.55) 9%,
+      #000 26%,
+      #000 82%,
+      rgba(0, 0, 0, 0.2) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 3%,
+      #000 97%,
+      transparent 100%
+    );
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.55) 9%,
+      #000 26%,
+      #000 82%,
+      rgba(0, 0, 0, 0.2) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 3%,
+      #000 97%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+
+  pointer-events: none;
+  user-select: none;
+}
+
+/*
+ * Below `lg` the section stacks, the buttons go full-width, and a
+ * vertically-centred box would land on top of the CTA. The map moves to the
+ * bottom-right corner instead, gets smaller and dimmer, and bleeds off both
+ * edges; the mask concentrates what remains in the corner so the buttons sit
+ * on clean background.
+ *
+ * The section is `overflow-hidden`, so the bleed can never widen the document.
+ */
+@media (max-width: 1023px) {
+  .zonatic-map {
+    --map-width: 72%;
+    --map-opacity: 0.18;
+    --map-x: -16%;
+    --map-y: auto;
+    /*
+     * A small bleed only. At -12% the wrapper clipped ~40% of the silhouette,
+     * which chopped the southern edge of the map; -3% keeps roughly 90% of the
+     * artwork readable while still letting it run off the bottom of the panel.
+     */
+    --map-bottom: -3%;
+
+    transform: none;
+
+    -webkit-mask-image: radial-gradient(
+      78% 92% at 88% 74%,
+      #000 0%,
+      rgba(0, 0, 0, 0.75) 42%,
+      rgba(0, 0, 0, 0.25) 70%,
+      transparent 88%
+    );
+    mask-image: radial-gradient(
+      78% 92% at 88% 74%,
+      #000 0%,
+      rgba(0, 0, 0, 0.75) 42%,
+      rgba(0, 0, 0, 0.25) 70%,
+      transparent 88%
+    );
+  }
+}

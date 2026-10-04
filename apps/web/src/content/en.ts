@@ -12,7 +12,7 @@ export const en: Content = {
   meta: {
     title: "Zonatic — Location Intelligence Infrastructure for Indonesia",
     description:
-      "Understand locations, define territories, and build location-aware applications with geographic infrastructure for Indonesia.",
+      "Understand location context in Indonesia, define zonas, and use geographic data directly in your application.",
     ogLocale: "en_ID",
     siteUrl: "https://www.zonatic.id",
   },
@@ -38,336 +38,218 @@ export const en: Content = {
     mobileOpen: "Open menu",
     mobileClose: "Close menu",
     links: [
-      { label: "Product", href: "#product" },
+      { label: "Product", href: "#zonas" },
       { label: "Solutions", href: "#use-cases" },
-      { label: "Pricing", href: "#pricing" },
-      { label: "Documentation", href: "/docs" },
+      { label: "Pricing", href: "#cost" },
     ],
   },
   hero: {
     eyebrow: "LOCATION INTELLIGENCE FOR INDONESIA",
-    headlineLine1: "Turn your location data",
-    headlineLine2: "into",
-    headlineHighlight: "real insights.",
+    headline: "Turn your location data into",
+    headlineHighlight: "real insight.",
     description:
-      "Understand locations, define territories, and build location-aware applications with accurate, trusted Indonesian geographic data.",
-    primaryCta: "Get started",
-    secondaryCta: "View documentation",
-    ctaFineprint:
-      "No credit card required · Instant API access · Open documentation",
-    pillars: [
-      {
-        label: "Location Data",
-        description: "Addresses, coordinates, and your location data.",
-        iconKey: "database",
-      },
-      {
-        label: "Geographic Intelligence",
-        description: "Enrich, classify, and understand your context.",
-        iconKey: "globe",
-      },
-      {
-        label: "Territory",
-        description:
-          "Build coverage from administrative areas or custom polygons.",
-        iconKey: "map",
-      },
-      {
-        label: "API",
-        description:
-          "Use location intelligence in your applications.",
-        iconKey: "code",
-      },
+      "Understand location context, define zonas, and use geographic data directly in your application.",
+    primaryCta: "Try Zonatic",
+    secondaryCta: "View API documentation",
+    microRow: [
+      "Indonesian location data",
+      "Zonas",
+      "API & location rules",
     ],
-    map: {
-      searchPlaceholder: "Search location...",
-      zoomIn: "Zoom in",
-      zoomOut: "Zoom out",
-      reset: "Reset view",
-      areaTitle: "Kebayoran Baru",
-      areaCountLabel: "locations",
-      summaryCard: {
-        totalLabel: "locations shown",
-        legend: [
-          { label: "Customer", count: 2421, dotClass: "bg-emerald-600" },
-          { label: "Outlet", count: 312, dotClass: "bg-emerald-300" },
-          { label: "Other", count: 109, dotClass: "bg-slate-400" },
-        ],
-        disclaimer:
-          "Illustrative numbers for design demonstration only.",
-      },
-    },
+    imageAlt:
+      "Flat Zonatic illustration: Indonesian location data mapped into zonas and geographic context used by an application.",
   },
   dataToIntel: {
-    eyebrow: "FROM DATA TO LOCATION INTELLIGENCE",
+    eyebrow: "LOCATION DATA",
     headline: "Bring your data.",
     headlineHighlight: "Put it on the map.",
     description:
-      "Upload your customer, outlet, or other location data. Zonatic validates them, enriches them with Indonesian geography, then visualizes and analyzes them for you.",
-    steps: [
-      {
-        title: "Upload your location data",
-        description:
-          "Use CSV, Excel, or an API integration to bring in your customers, outlets, or other point-of-interest data.",
-        mockRows: [
-          { id: "1", name: "Store A", address: "1 Sudirman St." },
-          { id: "2", name: "Store B", address: "Gatot Subroto..." },
-          { id: "3", name: "Store C", address: "Ahmad Yani St..." },
-        ],
-      },
-      {
-        title: "Zonatic resolves and enriches",
-        description:
-          "Get coordinates, administrative area, postal code, and location attribution for every record.",
-        stats: {
-          total: "12,431 records processed",
-          items: [
-            { label: "Address validation", iconKey: "check" },
-            { label: "Location enrichment", iconKey: "check" },
-            { label: "Area mapping", iconKey: "check" },
-            { label: "Duplicate detection", iconKey: "check" },
-          ],
-        },
-      },
-      {
-        title: "Visualize and analyze",
-        description:
-          "See your data on a map, analyze it for coverage, and surface the insights.",
-        map: {
-          areaName: "Analysis Area",
-          insideLabel: "inside",
-          outsideLabel: "outside",
-        },
-      },
-    ],
+      "Use location data you already have to understand its geographic context, see distribution patterns, and group locations to fit your needs.",
+    flowLabels: ["Dataset", "Enrichment process", "Location result"],
+    imageAlt:
+      "Zonatic enrichment flow illustration: a location dataset processed into a location result ready to analyse.",
   },
-  territories: {
-    eyebrow: "MANAGE AREAS WITH EASE",
-    headline: "Define your territories.",
+  zonas: {
+    eyebrow: "ZONAS",
+    headline: "Define zonas that fit your business.",
     description:
-      "Create coverage using Indonesian administrative areas, or draw your own custom boundaries.",
-    createCta: "Create a territory",
-    ctaFootnote:
-      "Demonstration on the landing page only — actual territory management lives in the Console.",
-    cards: [
+      "Combine administrative areas or custom polygons into zonas you can reuse for analysis, operations, and location-based rules.",
+    capabilities: [
       {
-        title: "Administrative Areas",
-        description:
-          "Pick provinces, cities, districts, or villages from the official Indonesia registry.",
+        label: "Administrative areas",
+        description: "Pick a province, city, district, or village.",
       },
       {
-        title: "Custom Polygons",
-        description:
-          "Draw the area yourself, or import an existing GeoJSON file.",
+        label: "Custom zonas",
+        description: "Use polygons shaped to your need.",
       },
       {
-        title: "Combine and Manage",
-        description:
-          "Combine multiple administrative areas and custom polygons inside a single territory.",
+        label: "Reusable zonas",
+        description: "Use the same zona for analysis and location-based rules.",
       },
     ],
-    cardHelpers: [
-      "From official administrative areas",
-      "From your own polygon",
-      "Combine both into a single territory",
-    ],
-    polygonSupportedLabel: "GeoJSON / KML supported",
-    adminTree: {
-      label: "DKI Jakarta Province",
-      children: {
-        label: "Jakarta Pusat",
-        grandchildren: [
-          "Jakarta Pusat",
-          "Jakarta Utara",
-          "Jakarta Selatan",
-          "Jakarta Timur",
-        ],
-      },
-    },
-    summary: {
-      areaName: "Territory Area (3)",
-      badge: "Active",
-      areasLabel: "areas",
-      locationsLabel: "locations",
-      items: [
-        { name: "Jakarta Pusat", count: 128 },
-        { name: "Jakarta Selatan", count: 342 },
-        { name: "Custom Area 1", count: 76 },
-      ],
-    },
+    imageAlt:
+      "Zonatic zona editor illustration: administrative areas combined with a custom polygon into one zona.",
   },
   api: {
-    eyebrow: "FOR DEVELOPERS",
-    headline: "Built for your applications.",
+    eyebrow: "API & LOCATION RULES",
+    headline: "Make location context part of your business rules.",
     description:
-      "Use Zonatic APIs to resolve locations, check territories, and bring location intelligence into your applications.",
-    viewDocs: "View documentation",
-    tryPlayground: "Try in Playground",
-    placeholderNote:
-      "The endpoints below are the ones actually live in Zonatic right now.",
-    codeTabs: [
-      {
-        label: "cURL",
-        language: "bash",
-        code: `# Reverse geocode
-curl -X GET "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.2088&longitude=106.8456" \\
-  -H "Authorization: Bearer YOUR_API_KEY"
-
-{
-  "latitude": -6.2088,
-  "longitude": 106.8456,
-  "matched": true,
-  "address": {
-    "province":    "DKI Jakarta",
-    "city":        "Jakarta Pusat",
-    "district":    "Tanah Abang",
-    "postal_code": "10220"
-  },
-  "areas": [...]
+      "Use location primitives to build applications, or define location-based rules through the UI and consume the results through the API.",
+    flow: ["LOCATION", "ZONATIC API", "ZONA", "RULE", "RESULT"],
+    request: {
+      method: "GET",
+      path: "/v1/zones/lookup?lat=-6.2088&lng=106.8456",
+      label: "Request",
+    },
+    response: {
+      label: "Response",
+      json: `{
+  "zone_id": "ID-JK-3171",
+  "zone": "urban",
+  "score": 20,
+  "rules": [
+    "rule_a",
+    "rule_b",
+    "rule_c"
+  ]
 }`,
-      },
-      {
-        label: "JavaScript",
-        language: "javascript",
-        code: `const res = await fetch(
-  "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.2088&longitude=106.8456",
-  {
-    headers: { Authorization: "Bearer YOUR_API_KEY" }
-  }
-);
-const data = await res.json();
-console.log(data.address.city); // Jakarta Pusat`,
-      },
-      {
-        label: "Python",
-        language: "python",
-        code: `import requests
-
-res = requests.get(
-    "https://api.zonatic.id/v1/reverse-geocode",
-    params={"latitude": -6.2088, "longitude": 106.8456},
-    headers={"Authorization": "Bearer YOUR_API_KEY"},
-)
-data = res.json()
-print(data["address"]["city"])  # Jakarta Pusat`,
-      },
-    ],
-    endpointListTitle: "Popular endpoints",
-    endpointListDescription:
-      "The endpoints most teams reach for first when integrating Zonatic.",
-    endpointListItems: [
-      { method: "GET", path: "/v1/reverse-geocode", auth: false },
-      { method: "GET", path: "/v1/areas/search", auth: true },
-      { method: "GET", path: "/v1/areas/autocomplete", auth: false },
-      { method: "GET", path: "/v1/postal-codes/search", auth: true },
-    ],
-    seeAllCta: "See all endpoints",
+    },
+    rules: {
+      label: "Example rules from that response",
+      zoneLabel: "Zone",
+      zone: "Urban",
+      scoreLabel: "Score",
+      score: "+20",
+      items: [
+        { label: "Rule A", value: "matched", outcome: "positive" },
+        { label: "Rule B", value: "priority", outcome: "positive" },
+        { label: "Rule C", value: "applicable", outcome: "neutral" },
+      ],
+    },
+    disclaimer:
+      "Zonatic provides location and zona context. Business rules and decisions stay with your own application.",
   },
   useCases: {
-    eyebrow: "BUILT FOR REAL-WORLD TEAMS",
+    eyebrow: "USE CASES",
     headline: "Location intelligence across industries.",
     description:
-      "Help teams across industries make better decisions with location intelligence.",
-    disclaimer:
-      "Zonatic is not a collection-management, sales, CRM, logistics, or insurance product. It provides the geographic infrastructure those products can build on.",
+      "Use location data, zonas, and location-based rules to fit your business needs.",
     cases: [
       {
-        title: "Collection & Lending",
-        description:
-          "Map customers, define collection areas, and improve field efficiency.",
+        title: "Lending & Finance",
+        description: "Rules, eligibility, and location-based analysis.",
         iconKey: "coins",
       },
       {
-        title: "Sales & Distribution",
-        description:
-          "Plan territories, map outlets, and organize coverage.",
+        title: "Retail",
+        description: "Area analysis and expansion potential.",
         iconKey: "store",
       },
       {
-        title: "Service Operations",
-        description:
-          "Define service areas and manage field operations.",
-        iconKey: "wrench",
-      },
-      {
-        title: "Insurance",
-        description:
-          "Understand risk areas and manage branch coverage.",
-        iconKey: "shield-check",
-      },
-      {
-        title: "Retail & FMCG",
-        description:
-          "Map outlets, plan distribution, and analyze market reach.",
-        iconKey: "shopping-basket",
-      },
-      {
         title: "Logistics",
-        description:
-          "Define delivery areas and optimize coverage.",
+        description: "Service zonas and coverage areas.",
         iconKey: "truck",
       },
+      {
+        title: "Marketing",
+        description: "Segmentation and targeting by area.",
+        iconKey: "target",
+      },
     ],
+    disclaimer:
+      "The use cases above are examples of customer application, not Zonatic's feature scope.",
+  },
+  costEstimator: {
+    eyebrow: "LOCATION API COST",
+    headline: "Paying too much for location data?",
+    description:
+      "Use Indonesian location data with a more efficient approach.",
+    calculator: {
+      title: "Estimate your location API cost",
+      productLabel: "Location service",
+      productHint: "Pick the location service you call most often.",
+      requestsLabel: "Monthly requests",
+      requestsHint: "Use a preset or enter your own volume.",
+      presets: ["10K", "100K", "1M", "5M", "10M"],
+      plans: {
+        planFree: "Free",
+        planDeveloper: "Developer",
+        planGrowth: "Growth",
+        planBusiness: "Business",
+      },
+      columnProvider: "Estimated Google cost",
+      columnProviderNote: "Derived from monthly volume",
+      columnZonatic: "Zonatic",
+      columnZonaticNote: "Derived from plan",
+      skuNote:
+        "Google pricing varies by SKU and requested fields. This estimate uses {product}.",
+      rateNote:
+        "The comparison is converted at an assumed rate, not a live exchange rate.",
+      estimateBadge: "Estimate",
+      perMonthSuffix: "/month",
+      customPlanLabel: "Custom plan",
+      comparisonTitle: "Cost comparison",
+      savingsTitle: "Potential savings",
+      savingsNote: "Compared with the estimated {provider} cost at {volume}.",
+      higherNote: "The estimated {provider} cost is lower at {volume}.",
+      equalNote: "Estimated cost is equal",
+      comparisonUnavailable:
+        "The cost comparison cannot be calculated for this volume.",
+      requestVolumeUnit: "requests/month",
+      sourceNote: "Provider pricing checked {date}.",
+      emptyState:
+        "Enter your monthly request volume to see an estimated cost.",
+      disclaimer:
+        "Estimates are based on usage volume. Actual prices may differ by SKU, requested fields, volume tier, and usage configuration. Zonatic pricing shown here is still an internal hypothesis, not final pricing.",
+    },
+    explainer: {
+      title: "Zonatic is an additional layer, not a replacement.",
+      points: [
+        "Using Zonatic does not mean you have to leave your global provider.",
+        "Keep a global provider for the needs that genuinely require coverage, Places, or other services Zonatic does not provide.",
+        "For Indonesian location resolution that local data can already answer, Zonatic can be a more efficient layer.",
+      ],
+    },
+    cta: {
+      primary: "Try Zonatic",
+      secondary: "Start with your Indonesian location needs.",
+      href: "mailto:hello@zonatic.id",
+    },
   },
   finalCta: {
-    eyebrow: "GET STARTED TODAY",
-    headline: "Make your data location-aware.",
+    eyebrow: "ZONE · RULE · API",
+    headline: "Make your data more meaningful.",
     description:
-      "Build smarter products with geographic infrastructure designed for Indonesia.",
-    primaryCta: "Get started",
-    secondaryCta: "Contact sales",
+      "Understand location context, shape zonas, and use geographic information directly in your application.",
+    primaryCta: "Start with Zonatic",
+    secondaryCta: "View API documentation",
   },
   footer: {
     tagline: "Location intelligence infrastructure for Indonesia.",
+    copyrightYear: "2026",
     copyright: "All rights reserved.",
-    jurisdiction: "Location intelligence infrastructure for Indonesia.",
-    legalLinks: ["Privacy Policy", "Terms of Service"],
-    socials: [
-      {
-        label: "GitHub",
-        href: "https://github.com/heritechie/zonatic",
-        iconKey: "github",
-      },
-      {
-        label: "LinkedIn",
-        href: "https://www.linkedin.com/company/zonatic",
-        iconKey: "linkedin",
-      },
-    ],
     columns: [
       {
         title: "Product",
         links: [
-          { label: "Location Intelligence", href: "#hero" },
-          { label: "Territory", href: "#territories" },
-          { label: "Location Data", href: "#data" },
-          { label: "API", href: "#api" },
+          { label: "Location Intelligence" },
+          { label: "Zonas" },
+          { label: "API" },
         ],
       },
       {
-        title: "Solutions",
+        title: "Developer",
         links: [
-          { label: "Enterprise", href: "#use-cases" },
-          { label: "Startup", href: "#use-cases" },
-          { label: "Developer", href: "#use-cases" },
-          { label: "Field Operations", href: "#use-cases" },
-        ],
-      },
-      {
-        title: "Documentation",
-        links: [
-          { label: "Enterprise", href: "/docs" },
-          { label: "About", href: "/about" },
-          { label: "API Reference", href: "/docs" },
-          { label: "Examples", href: "/docs" },
+          { label: "API Documentation" },
+          { label: "API Reference" },
         ],
       },
       {
         title: "Company",
         links: [
-          { label: "About", href: "/about" },
-          { label: "Privacy Policy", href: "/privacy" },
-          { label: "Terms of Service", href: "/terms" },
+          { label: "About Zonatic", href: "/about" },
+          { label: "Contact", href: "mailto:hello@zonatic.id" },
         ],
       },
     ],

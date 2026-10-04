@@ -1,0 +1,23 @@
+{
+  "$comment": [
+    "Exchange rates used to compare a USD-quoted provider price against Zonatic's IDR pricing.",
+    "",
+    "ASSUMPTION, NOT A LIVE RATE. There is no free, official, stable USD/IDR reference",
+    "rate to quote, so this value is a marketing-calculation assumption and is labelled",
+    "as such in the UI. It is deliberately not described as a live exchange rate.",
+    "",
+    "To change it: edit `value` (and `checkedAt`) below. Nothing else needs to change —",
+    "calculator.ts, format.ts and the React component read this file and never mention",
+    "a rate literal."
+  ],
+  "baseCurrency": "USD",
+  "rates": {
+    "IDR": {
+      "value": 16000,
+      "source": "manual",
+      "verified": false,
+      "checkedAt": "2026-10-04",
+      "note": "Kurs asumsi untuk perbandingan biaya di kalkulator. Bukan kurs pasar live dan dapat berubah sewaktu-waktu."
+    }
+  }
+}

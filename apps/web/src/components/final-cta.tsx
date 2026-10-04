@@ -1,15 +1,18 @@
 import Link from "next/link";
-import { Mail } from "lucide-react";
 import type { Content } from "@/content";
 
 /**
  * Final CTA section.
  *
- * Emerald-800 background with a faint Indonesia outline
- * (`/assets/maps/indonesia-contour.webp`) at low opacity. Headline
- * is left-aligned inside the max-w-7xl container; on lg+ the
- * section gains extra vertical padding so the buttons sit
- * comfortably above the footer.
+ * Emerald-800 background with the Indonesia outline
+ * (`/assets/maps/indonesia-contour.webp`) blended into the background as a
+ * watermark on the right. Headline is left-aligned inside the max-w-7xl
+ * container; on lg+ the section gains extra vertical padding so the buttons
+ * sit comfortably above the footer.
+ *
+ * Section height is unchanged by the artwork: the decoration is absolutely
+ * positioned and clipped by an `overflow-hidden` wrapper, so it can neither
+ * grow the section nor push the content around.
  */
 export function FinalCTA({ content }: { content: Content }) {
   const c = content.finalCta;
@@ -37,17 +40,16 @@ export function FinalCTA({ content }: { content: Content }) {
           </p>
           <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row">
             <Link
-              href="/sign-up"
+              href="mailto:hello@zonatic.id"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-slate-50 transition-colors"
             >
               {c.primaryCta}
               <span aria-hidden="true">→</span>
             </Link>
             <Link
-              href="mailto:hello@zonatic.id"
+              href="#api"
               className="inline-flex items-center justify-center gap-2 rounded-md border border-emerald-300/60 bg-transparent px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700/60 transition-colors"
             >
-              <Mail className="h-4 w-4" aria-hidden="true" />
               {c.secondaryCta}
             </Link>
           </div>
@@ -58,28 +60,40 @@ export function FinalCTA({ content }: { content: Content }) {
 }
 
 /**
- * Decorative Indonesia outline placed on the emerald background.
- * Uses the brand-approved asset at low opacity so it reads as a
- * watermark rather than a primary visual.
+ * Decorative Indonesia outline blended into the emerald background.
+ *
+ * A single `<img>` sized by width, with its height derived from the asset's
+ * 2:1 ratio and `object-fit: contain`, so the silhouette is never cropped.
+ * Geometry, opacity, and offsets all live in CSS variables on `.zonatic-map`
+ * (globals.css) rather than in class strings here.
+ *
+ * Sizing is deliberate rather than incidental: the archipelago fills nearly the
+ * whole 2400x1200 canvas, so a box wider than the section, or a
+ * centre-anchored box taller than the section, clips it. At `--map-width: 48%`
+ * the box is 691x346 at 1440px and clears the section vertically. The section
+ * keeps its existing height — the artwork never drives layout, and the wrapper
+ * is `overflow-hidden` so the small right bleed cannot widen the document.
+ *
+ * `mix-blend-mode: screen` is what keeps the artwork's dark panel invisible
+ * against the green; see `.zonatic-map` for the full reasoning.
  */
 function IndonesiaBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/assets/maps/indonesia-contour.webp"
         alt=""
         aria-hidden="true"
-        className="absolute right-[-4%] top-1/2 hidden h-[130%] w-auto -translate-y-1/2 translate-x-0 opacity-90 mix-blend-screen lg:block xl:right-[-6%]"
+        className="zonatic-map"
         loading="lazy"
         decoding="async"
         width={2400}
         height={1200}
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-emerald-800 via-emerald-800/92 to-emerald-800/60 lg:bg-gradient-to-r lg:from-emerald-800 lg:via-emerald-800/88 lg:to-emerald-800/20" />
     </div>
   );
 }

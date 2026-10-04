@@ -20,21 +20,21 @@ export type AboutContent = {
 export const about: Record<Locale, AboutContent> = {
   id: {
     title: "Tentang Zonatic",
-    hero: "Infrastruktur location intelligence untuk Indonesia.",
+    hero: "Infrastruktur geografis untuk Indonesia.",
     description:
-      "Zonatic membantu tim memahami data lokasi, memperkaya informasi geografis, menentukan territory, dan membangun aplikasi yang sadar lokasi.",
+      "Zonatic membantu tim memahami data lokasi, memperkaya informasi geografis, menentukan zona, dan membangun aplikasi dengan dukungan data lokasi.",
     sections: [
       {
         title: "Apa itu Zonatic?",
         body:
-          "Zonatic adalah infrastruktur location intelligence yang membantu mengubah data lokasi menjadi informasi geografis yang dapat digunakan oleh aplikasi dan tim.",
+          "Zonatic adalah infrastruktur geografis yang membantu mengubah data lokasi menjadi informasi geografis yang dapat digunakan oleh aplikasi dan tim.",
       },
       {
         title: "Apa yang kami bangun?",
         list: [
-          "Data lokasi",
-          "Geographic intelligence",
-          "Territory",
+          "Data Lokasi",
+          "Geographic Intelligence",
+          "Zona",
           "Location APIs",
         ],
       },
@@ -51,21 +51,21 @@ export const about: Record<Locale, AboutContent> = {
   },
   en: {
     title: "About Zonatic",
-    hero: "Location intelligence infrastructure for Indonesia.",
+    hero: "Geographic infrastructure for Indonesia.",
     description:
-      "Zonatic helps teams understand location data, enrich geographic information, define territories, and build location-aware applications.",
+      "Zonatic helps teams understand location data, enrich geographic information, define zonas, and build location-aware applications.",
     sections: [
       {
         title: "What is Zonatic?",
         body:
-          "Zonatic is location intelligence infrastructure that helps turn location data into geographic information that teams and applications can use.",
+          "Zonatic is geographic infrastructure that helps turn location data into geographic information that teams and applications can use.",
       },
       {
         title: "What we build?",
         list: [
           "Location Data",
           "Geographic Intelligence",
-          "Territory",
+          "Zona",
           "Location APIs",
         ],
       },

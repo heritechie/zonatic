@@ -85,14 +85,14 @@ export default async function AboutPage({
 
             <div className="mt-16 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Link
-                href="#get-started"
+                href={`/${safeLocale}/#get-started`}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-3 text-[0.95rem] font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
               >
                 {page.ctas.primary}
                 <span aria-hidden="true">→</span>
               </Link>
               <Link
-                href="/docs"
+                href={`/${safeLocale}/#api`}
                 className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-6 py-3 text-[0.95rem] font-semibold text-navy-800 hover:bg-slate-50 transition-colors"
               >
                 {page.ctas.secondary}

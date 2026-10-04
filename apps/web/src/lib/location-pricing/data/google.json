@@ -1,0 +1,81 @@
+{
+  "$comment": [
+    "Google Maps Platform pricing for the location services Zonatic compares against.",
+    "Prices are Google's published global list prices in USD, per 1,000 billable events.",
+    "Verified against https://developers.google.com/maps/billing-and-pricing/pricing on 2026-10-04.",
+    "",
+    "Billing model: Google aggregates usage monthly across all projects on the billing",
+    "account, applies the free usage cap first, then charges each volume band at that",
+    "band's own rate (progressive, never one flat rate for the whole volume). Google's",
+    "worked example on the pricing page confirms this: 200,000 Autocomplete Requests",
+    "resolve as 10,000 free, then 90,000 @ $2.83, then 100,000 @ $2.27, totalling $481.70.",
+    "",
+    "IMPORTANT: these prices are per SKU and vary with the fields/field mask a request",
+    "asks for. Google Places API (New) has no single price. Only the SKUs listed here are",
+    "modelled, and each is labelled with its exact SKU so the UI never implies that all",
+    "of Places API costs this much."
+  ],
+  "provider": "google_maps",
+  "displayName": "Google Maps Platform",
+  "currency": "USD",
+  "source": {
+    "url": "https://developers.google.com/maps/billing-and-pricing/pricing",
+    "documentationUrl": "https://developers.google.com/maps/documentation/places/web-service/overview?hl=id",
+    "verified": true,
+    "checkedAt": "2026-10-04",
+    "effectiveFrom": "2025-03-01",
+    "note": "Global list price. Google reserves the right to grant additional volume discounts, which are not modelled here."
+  },
+  "products": {
+    "places_text_search_pro": {
+      "displayName": "Google Places API — Text Search Pro",
+      "sku": "4FDA-34B1-A910",
+      "billingModel": "progressive_tier",
+      "unit": "event",
+      "free": { "quantity": 5000 },
+      "tiers": [
+        { "upTo": 100000, "pricePer1000": 32 },
+        { "upTo": 500000, "pricePer1000": 25.6 },
+        { "upTo": 1000000, "pricePer1000": 19.2 },
+        { "upTo": 5000000, "pricePer1000": 9.6 },
+        { "upTo": null, "pricePer1000": 2.4 }
+      ],
+      "notes": [
+        "Text Search (New) billed as a Pro SKU. Price depends on the field mask requested, so a request that asks for more fields can cost more than this figure.",
+        "Nearby Search, Place Details, and Enterprise SKUs are deliberately not modelled yet."
+      ],
+      "verification": {
+        "basis": "derived_from_table",
+        "examples": [
+          { "monthlyRequests": 10000, "expectedAmount": 160, "why": "5,000 free + 5,000 @ $32.00/1,000" },
+          { "monthlyRequests": 100000, "expectedAmount": 3040, "why": "5,000 free + 95,000 @ $32.00/1,000; not 100,000 @ $32.00/1,000 = $3,200" },
+          { "monthlyRequests": 2000000, "expectedAmount": 32480, "why": "spans four bands: 95,000 @ $32.00 + 400,000 @ $25.60 + 500,000 @ $19.20 + 1,000,000 @ $9.60" }
+        ]
+      }
+    },
+    "geocoding": {
+      "displayName": "Google Geocoding API",
+      "sku": "BAC8-4E68-E261",
+      "billingModel": "progressive_tier",
+      "unit": "event",
+      "free": { "quantity": 10000 },
+      "tiers": [
+        { "upTo": 100000, "pricePer1000": 5 },
+        { "upTo": 500000, "pricePer1000": 4 },
+        { "upTo": 1000000, "pricePer1000": 3 },
+        { "upTo": 5000000, "pricePer1000": 1.5 },
+        { "upTo": null, "pricePer1000": 0.38 }
+      ],
+      "notes": [
+        "Geocoding Essentials SKU. Autocomplete Requests was removed from this comparison; the schema still accepts it if it comes back."
+      ],
+      "verification": {
+        "basis": "derived_from_table",
+        "examples": [
+          { "monthlyRequests": 20000, "expectedAmount": 50, "why": "10,000 free + 10,000 @ $5.00/1,000" },
+          { "monthlyRequests": 2000000, "expectedAmount": 5050, "why": "90,000 @ 5 + 400,000 @ 4 + 500,000 @ 3 + 1,000,000 @ 1.50" }
+        ]
+      }
+    }
+  }
+}

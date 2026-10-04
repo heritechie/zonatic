@@ -15,30 +15,34 @@ export const DEFAULT_LOCALE: Locale = "id";
 export type NavLink = { label: string; href: string };
 export type NavGroup = { label: string; links: NavLink[] };
 
+/**
+ * Footer link. `href` is optional on purpose: the product column lists
+ * capability areas rather than standalone pages, so those entries are
+ * rendered as plain text labels and never become dead links.
+ */
+export type FooterLink = { label: string; href?: string };
+export type FooterColumn = { title: string; links: FooterLink[] };
+
+/**
+ * A use case names an *example* of how a customer may apply Zonatic.
+ * It is not a statement of Zonatic's own product scope.
+ */
 export type UseCase = {
   title: string;
   description: string;
   iconKey:
     | "coins"
     | "store"
-    | "wrench"
-    | "shield-check"
-    | "shopping-basket"
-    | "truck";
+    | "truck"
+    | "target";
 };
 
+/**
+ * A short capability line. Rendered as plain text, never as a card:
+ * the page deliberately keeps one idea per section.
+ */
 export type Capability = {
   label: string;
-  description: string;
-  iconKey:
-    | "database"
-    | "globe"
-    | "map"
-    | "code";
-};
-
-export type TerritoryCard = {
-  title: string;
   description: string;
 };
 
@@ -80,122 +84,98 @@ common: {
   hero: {
     eyebrow: string;
     /**
-     * Two-line headline. The page renders these as
-     * `<span>{headlineLine1}</span> <span>{headlineLine2}</span>` so the
-     * emphasis can be tuned per line.
+     * Rendered as `{headline} {headlineHighlight}`, with the accent on the
+     * closing phrase so the sentence still reads as one thought.
      */
-    headlineLine1: string;
-    headlineLine2: string;
+    headline: string;
     headlineHighlight: string;
     description: string;
     primaryCta: string;
     secondaryCta: string;
     /**
-     * Optional fine-print shown immediately under the primary CTA.
-     * Free to omit per locale.
+     * Three plain-text capability markers under the CTAs. No icons and no
+     * card chrome: they restate the product shape, not a feature list.
      */
-    ctaFineprint: string;
+    microRow: string[];
     /**
-     * Four capability pillars shown beneath the two-column hero.
-     * The reference layout makes these feel like a continuation of
-     * the hero, not a separate strip.
+     * Alt text for `/assets/zonatic_hero_flat_green.webp`, the hero's
+     * primary visual. The artwork carries its own labels, so the alt text
+     * describes the illustration rather than repeating them.
      */
-    pillars: { label: string; description: string; iconKey: string }[];
-    /**
-     * Visual overlay state for the Jakarta map.
-     * The actual map image is `/assets/maps/hero-jakarta-map.webp`.
-     */
-    map: {
-      searchPlaceholder: string;
-      zoomIn: string;
-      zoomOut: string;
-      reset: string;
-      areaTitle: string;
-      areaCountLabel: string;
-      summaryCard: {
-        totalLabel: string;
-        legend: { label: string; count: number; dotClass: string }[];
-        disclaimer: string;
-      };
-    };
+    imageAlt: string;
   };
+  /**
+   * "Bring your data, put it on the map." One section, one visual: the
+   * enrichment artwork already contains the dataset -> process -> result
+   * story, so the page adds only a plain-text reading order beside it.
+   */
   dataToIntel: {
     eyebrow: string;
     headline: string;
     headlineHighlight: string;
     description: string;
-    steps: {
-      title: string;
-      description: string;
-      mockRows?: { id: string; name: string; address: string }[];
-      stats?: {
-        total: string;
-        items: { label: string; iconKey: string }[];
-      };
-      map?: { areaName: string; insideLabel: string; outsideLabel: string };
-    }[];
+    /** Reading order for the single visual, joined with arrows. No cards. */
+    flowLabels: string[];
+    /** Alt text for `/assets/zonatic_enrichment_section.webp`. */
+    imageAlt: string;
   };
-  territories: {
+  /**
+   * Zonas: administrative areas and custom polygons combined into reusable
+   * business units. Replaces the old three-card territory layout, which
+   * split one idea across three visuals.
+   */
+  zonas: {
     eyebrow: string;
     headline: string;
     description: string;
-    cards: TerritoryCard[];
-    /**
-     * Short helper line per card explaining the boundary source.
-     * Pairs 1:1 with `cards`. Strengthens the three-pillar
-     * explanation: administrative areas / custom polygons / combined.
-     */
-    cardHelpers: string[];
-    /**
-     * Small badge inside the custom-polygon mock, e.g.
-     * "GeoJSON / KML supported".
-     */
-    polygonSupportedLabel: string;
-    createCta: string;
-    ctaFootnote: string;
-    /**
-     * Mock administrative tree used in the first capability card.
-     */
-    adminTree: {
-      label: string;
-      children: { label: string; grandchildren: string[] };
-    };
-    /** Mock kecamatan counts shown on the third capability card. */
-    summary: {
-      areaName: string;
-      badge: string;
-      areasLabel: string;
-      locationsLabel: string;
-      items: { name: string; count: number }[];
-    };
+    /** Three capability lines shown in the copy column. */
+    capabilities: Capability[];
+    /** Alt text for `/assets/zonatic_zona_editor.webp`. */
+    imageAlt: string;
   };
+  /**
+   * Zonatic's main differentiator: location in, business rule out.
+   *
+   * The section is deliberately *not* a documentation browser. It shows one
+   * request, one response, and the rules a caller could derive from it,
+   * framed by the LOCATION -> ZONE -> RULE -> DECISION chain.
+   */
   api: {
     eyebrow: string;
     headline: string;
     description: string;
-    viewDocs: string;
-    tryPlayground: string;
-    placeholderNote: string;
-    /**
-     * Tab labels and code samples for the multi-language code panel.
-     * The reference mockup shows cURL, JavaScript, and Python tabs;
-     * the curl variant is the default. HTTP method, URL, header and
-     * response payload must match the live FastAPI implementation.
-     */
-    codeTabs: {
+    /** The chain, rendered in order with connectors. */
+    flow: string[];
+    /** The single example request. */
+    request: {
+      method: string;
+      path: string;
       label: string;
-      language: "bash" | "javascript" | "python";
-      code: string;
-    }[];
+    };
+    /** The single example response, shown verbatim as JSON. */
+    response: {
+      label: string;
+      json: string;
+    };
     /**
-     * "Popular endpoints" list shown beside the code panel. Only
-     * endpoints actually live in the FastAPI backend today are
-     * referenced. Anything else would mislead developers.
+     * Example rules a caller could apply to the response above.
+     * `zoneLabel` / `scoreLabel` are explicit rather than derived, so the
+     * component never has to guess a locale from a string.
      */
-    endpointListTitle: string;
-    endpointListDescription: string;
-    endpointListItems: { method: string; path: string; auth: boolean }[];
-    seeAllCta: string;
+    rules: {
+      label: string;
+      zoneLabel: string;
+      zone: string;
+      scoreLabel: string;
+      score: string;
+      items: { label: string; value: string; outcome: "positive" | "neutral" }[];
+    };
+    /**
+     * States the boundary explicitly: Zonatic returns location context,
+     * the customer's application applies its own business rules. This must
+     * never be phrased as Zonatic making a credit or lending decision.
+     */
+    disclaimer: string;
   };
   useCases: {
     eyebrow: string;
@@ -203,6 +183,97 @@ common: {
     description: string;
     cases: UseCase[];
     disclaimer: string;
+  };
+  /**
+   * Location API cost estimator.
+   *
+   * Economic argument only: it estimates what a given volume costs on each
+   * side. It makes no claim that a global provider is bad, and it does not
+   * render the full Zonatic pricing table.
+   */
+  costEstimator: {
+    eyebrow: string;
+    headline: string;
+    description: string;
+    calculator: {
+      title: string;
+      productLabel: string;
+      productHint: string;
+      requestsLabel: string;
+      requestsHint: string;
+      /** Preset labels, e.g. `10K`. Order matches the preset values. */
+      presets: string[];
+      /**
+       * Plan labels shown in the Zonatic result. Product option labels are
+       * *not* here: they are proper nouns owned by the pricing data, so a
+       * product can be added without touching copy or code.
+       */
+      plans: {
+        planFree: string;
+        planDeveloper: string;
+        planGrowth: string;
+        planBusiness: string;
+      };
+      /** Titled "estimated" because it is derived from volume, not quoted. */
+      columnProvider: string;
+      columnProviderNote: string;
+      columnZonatic: string;
+      columnZonaticNote: string;
+      /**
+       * Discloses that the provider figure covers one SKU only. `{sku}` and
+       * `{product}` are replaced from the selected product at render time.
+       */
+      skuNote: string;
+      /** Marks a figure as an estimate rather than a quoted price. */
+      estimateBadge: string;
+      perMonthSuffix: string;
+      /** Shown when the volume lands on a negotiated plan. */
+      customPlanLabel: string;
+      /**
+       * Headline for the comparison block.
+       *
+       * The block has three states and only one of them may claim savings, so
+       * the wording is split rather than derived from the amount:
+       *   - `savingsTitle` when the provider estimate is above Zonatic's;
+       *   - `comparisonTitle` when they are equal, when Zonatic's is higher, or
+       *     when no comparison could be made at all.
+       */
+      comparisonTitle: string;
+      savingsTitle: string;
+      /** `{provider}` and `{volume}` are replaced at render time. */
+      savingsNote: string;
+      /** Neutral wording for when Zonatic's estimate is the higher one. */
+      higherNote: string;
+      /** Shown when both sides come to the same figure. */
+      equalNote: string;
+      /** Shown when a comparison could not be computed. */
+      comparisonUnavailable: string;
+      /**
+       * Unit for the request volume, e.g. `request/bulan`. Kept separate from
+       * `perMonthSuffix` so a volume can never be rendered as if it were a
+       * currency amount.
+       */
+      requestVolumeUnit: string;
+      /** Discloses the exchange rate used to compare the two currencies. */
+      rateNote: string;
+      /**
+       * Provenance line for the provider figure. `{date}` is replaced with
+       * the pricing file's `checkedAt` value at render time.
+       */
+      sourceNote: string;
+      emptyState: string;
+      disclaimer: string;
+    };
+    explainer: {
+      title: string;
+      points: string[];
+    };
+    cta: {
+      primary: string;
+      secondary: string;
+      /** Placeholder until the console's public origin is confirmed. */
+      href: string;
+    };
   };
   finalCta: {
     eyebrow: string;
@@ -213,11 +284,18 @@ common: {
   };
   footer: {
     tagline: string;
-    columns: { title: string; links: NavLink[] }[];
+    /**
+     * Compact B2B infrastructure footer: product areas, developer
+     * references, and company pages. Entries without an `href` render as
+     * plain labels, never as dead links.
+     */
+    columns: FooterColumn[];
+    /**
+     * Rendered verbatim so the static HTML does not depend on the build
+     * clock: `new Date().getFullYear()` can disagree between the prerender
+     * and the browser across a year boundary.
+     */
+    copyrightYear: string;
     copyright: string;
-    jurisdiction: string;
-    legalLinks: string[];
-    /** GitHub + LinkedIn social URLs. Empty array renders nothing. */
-    socials: { label: string; href: string; iconKey: "github" | "linkedin" }[];
   };
 };

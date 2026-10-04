@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { LOCALES, type Locale } from "@/content";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/content";
 import { cn } from "@/lib/utils";
 
 type Variant = "desktop" | "mobile" | "footer";
@@ -16,10 +16,12 @@ type Variant = "desktop" | "mobile" | "footer";
  *   - `mobile` two-button row (mobile menu)
  *   - `footer` standalone pill rendered below the brand tagline
  *
- * The active locale is computed from the current URL (via
- * `usePathname`) and visually highlighted. Switching routes to the
- * same page in the other locale by replacing the leading `/<locale>/`
- * segment, so anchors (`#territories`, etc.) are preserved.
+ * The current locale is read from the URL rather than a prop, because the
+ * Indonesian default is served both at `/` and at `/id/`. The switcher
+ * therefore strips a leading locale segment (if there is one) and re-adds
+ * the target locale, keeping the rest of the path — and any anchor —
+ * intact. Indonesian resolves to `/` for the homepage and to `/id/<path>`
+ * for nested pages.
  *
  * No client-side persistence is required: the URL itself is the
  * source of truth, and Next.js prerenders one HTML file per locale.
@@ -36,19 +38,22 @@ export function LanguageSwitcher({
   const pathname = usePathname();
 
   const targets = useMemo(() => {
-    return LOCALES.map((locale) => {
-      // Strip the current leading `/{locale}/` segment, then prepend
-      // `/{otherLocale}/`. Falls back to `/${otherLocale}/` if pathname
-      // is unexpectedly short.
-      const segments = pathname?.split("/") ?? [];
-      if (segments[1] === currentLocale) {
-        segments[1] = locale;
-      } else {
-        segments.unshift("", locale);
-      }
-      return { locale, href: segments.join("/") || `/${locale}/` };
-    });
-  }, [pathname, currentLocale]);
+    const segments = (pathname ?? "/").split("/").filter(Boolean);
+
+    // Drop a leading locale segment so re-prefixing cannot double it up.
+    if (segments.length > 0 && (LOCALES as readonly string[]).includes(segments[0])) {
+      segments.shift();
+    }
+
+    const rest = segments.length > 0 ? `/${segments.join("/")}` : "";
+
+    return LOCALES.map((locale) => ({
+      locale,
+      // Indonesian homepage is the site root; everything else is prefixed.
+      href:
+        locale === DEFAULT_LOCALE && !rest ? "/" : `/${locale}${rest}`,
+    }));
+  }, [pathname]);
 
   if (variant === "mobile") {
     return (

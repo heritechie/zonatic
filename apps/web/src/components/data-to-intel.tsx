@@ -1,30 +1,31 @@
 import type { Content } from "@/content";
 
 /**
- * Two-column workflow section.
+ * Location data section: "bring your data, put it on the map".
  *
- *   Left   | eyebrow, headline (two lines + emerald emphasis),
- *          | description text.
+ *   Left  | eyebrow, headline, supporting copy, then the reading order of
+ *         | the visual as plain text (dataset -> enrichment -> result).
  *
- *   Right  | three stacked cards: Upload → Resolve → Visualize,
- *          | each containing the asset preview for that step.
+ *   Right | one large horizontal illustration,
+ *         | `/assets/zonatic_enrichment_section.webp`.
  *
- * Step 1 uses `/assets/workflow/dataset-preview.webp`,
- * Step 2 uses `/assets/workflow/enrichment-preview.webp`,
- * Step 3 uses `/assets/maps/customer-location-map.webp`.
- * When any of these assets is missing, the component renders an
- * inline-SVG fallback that approximates the same visual.
+ * This section used to be three stacked cards, each with its own screenshot,
+ * which split one idea across three visuals and made the reader scroll past
+ * two explanations before reaching the point. The single artwork already
+ * shows dataset, process and result, so the page now adds only a caption
+ * row — no cards, no per-step mockups.
  */
 export function DataToIntelligence({ content }: { content: Content }) {
   const d = content.dataToIntel;
+
   return (
     <section
       id="data"
       aria-labelledby="data-headline"
-      className="bg-slate-50 py-16 sm:py-20 lg:py-24"
+      className="bg-slate-50 py-20 sm:py-24 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-14">
+        <div className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
           {/* Left column — copy */}
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
@@ -32,155 +33,54 @@ export function DataToIntelligence({ content }: { content: Content }) {
             </p>
             <h2
               id="data-headline"
-              className="mt-4 text-3xl font-bold tracking-tight text-navy-900 sm:text-4xl lg:text-5xl"
+              className="mt-4 text-3xl font-bold tracking-tight text-navy-900 sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]"
             >
-              <span className="block">{d.headline}</span>
-              <span className="block text-emerald-700">
-                {d.headlineHighlight}
-              </span>
+              {d.headline}{" "}
+              <span className="text-emerald-700">{d.headlineHighlight}</span>
             </h2>
             <p className="mt-5 text-[0.95rem] leading-7 text-navy-600 sm:text-lg">
               {d.description}
             </p>
+
+            <FlowLabels labels={d.flowLabels} />
           </div>
 
-          {/* Right column — horizontal step cards with connector */}
-          <ol className="relative flex flex-col gap-6 lg:gap-8">
-            <div
-              aria-hidden="true"
-              className="hidden lg:block absolute left-4 top-6 bottom-6 w-px bg-gradient-to-b from-emerald-200/60 via-slate-300/60 to-slate-200/50"
+          {/* Right column — the single main visual */}
+          <figure className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/zonatic_enrichment_section.webp"
+              alt={d.imageAlt}
+              className="h-auto w-full select-none"
+              loading="lazy"
+              decoding="async"
+              width={1774}
+              height={887}
             />
-            {d.steps.map((step, i) => (
-              <li
-                key={step.title}
-                className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md lg:p-6"
-              >
-                <div className="flex items-start gap-4">
-                  <span
-                    aria-hidden="true"
-                    className="relative z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white shadow-sm"
-                  >
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-semibold text-navy-900 sm:text-lg">
-                      {step.title}
-                    </h3>
-                    <p className="mt-1.5 text-[0.95rem] leading-7 text-navy-600">
-                      {step.description}
-                    </p>
-                    <div className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
-                      <StepMedia stepIndex={i} step={step} content={content} />
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
+          </figure>
         </div>
       </div>
     </section>
   );
 }
 
-function StepMedia({
-  stepIndex,
-  step,
-  content,
-}: {
-  stepIndex: number;
-  step: Content["dataToIntel"]["steps"][number];
-  content: Content;
-}) {
-  if (stepIndex === 0) {
-    return <UploadPreview />;
-  }
-  if (stepIndex === 1) {
-    return <EnrichmentPreview />;
-  }
-  return (
-    <MapPreview
-      areaName={step.map?.areaName ?? ""}
-      insideLabel={step.map?.insideLabel ?? ""}
-      outsideLabel={step.map?.outsideLabel ?? ""}
-      fallbackAlt={content.hero.eyebrow}
-    />
-  );
-}
-
 /**
- * Step 1 visual: a brand-approved screenshot of a CSV upload
- * preview. Falls back to a CSV mock if the asset is missing.
+ * Reading order of the illustration. Arrows only — no boxes — so it reads as
+ * a caption rather than as three more cards competing with the visual.
  */
-function UploadPreview() {
+function FlowLabels({ labels }: { labels: string[] }) {
   return (
-    <div className="relative w-full overflow-hidden bg-white">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/assets/workflow/dataset-preview.webp"
-        alt="Pratinjau dataset CSV"
-        className="w-full h-auto object-contain"
-        loading="lazy"
-        decoding="async"
-        width={1400}
-        height={900}
-      />
-    </div>
-  );
-}
-
-/**
- * Step 2 visual: a brand-approved screenshot of the enrichment
- * results panel. Falls back to a stats summary if the asset is
- * missing.
- */
-function EnrichmentPreview() {
-  return (
-    <div className="relative w-full overflow-hidden bg-white">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/assets/workflow/enrichment-preview.webp"
-        alt="Pratinjau enrichment"
-        className="w-full h-auto object-contain"
-        loading="lazy"
-        decoding="async"
-        width={1400}
-        height={900}
-      />
-    </div>
-  );
-}
-
-function MapPreview({
-  areaName,
-  insideLabel,
-  outsideLabel,
-  fallbackAlt,
-}: {
-  areaName: string;
-  insideLabel: string;
-  outsideLabel: string;
-  fallbackAlt: string;
-}) {
-  return (
-    <div className="relative w-full overflow-hidden bg-white">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/assets/maps/customer-location-map.webp"
-        alt={fallbackAlt}
-        className="w-full h-auto object-contain"
-        loading="lazy"
-        decoding="async"
-        width={1600}
-        height={1000}
-      />
-      <div className="absolute bottom-3 right-3 rounded-md bg-white/95 backdrop-blur px-2.5 py-1.5 text-[0.8125rem] shadow-sm">
-        <p className="font-semibold text-navy-900">{areaName}</p>
-        <p className="text-navy-500">
-          <span className="text-emerald-700">●</span> 6 {insideLabel} ·{" "}
-          <span className="text-slate-400">●</span> 4 {outsideLabel}
-        </p>
-      </div>
-    </div>
+    <ol className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.8125rem] font-medium text-navy-500">
+      {labels.map((label, i) => (
+        <li key={label} className="flex items-center gap-3">
+          <span className="text-emerald-700">{label}</span>
+          {i < labels.length - 1 ? (
+            <span aria-hidden="true" className="text-slate-300">
+              &rarr;
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ol>
   );
 }

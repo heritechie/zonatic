@@ -1,0 +1,37 @@
+{
+  "provider": "zonatic",
+  "displayName": "Zonatic",
+  "currency": "IDR",
+  "source": {
+    "verified": false,
+    "checkedAt": "2026-10-04",
+    "note": "INTERNAL PRICING HYPOTHESIS. These are not published commercial prices and must not be presented as final, committed, or contractual pricing. Any figure shown to a prospect from this file is illustrative only."
+  },
+  "plans": {
+    "free": {
+      "labelKey": "planFree",
+      "monthlyPrice": 0,
+      "includedRequests": 10000,
+      "negotiated": false
+    },
+    "developer": {
+      "labelKey": "planDeveloper",
+      "monthlyPrice": 149000,
+      "includedRequests": 100000,
+      "negotiated": false
+    },
+    "growth": {
+      "labelKey": "planGrowth",
+      "monthlyPrice": 799000,
+      "includedRequests": 1000000,
+      "negotiated": false
+    },
+    "business": {
+      "labelKey": "planBusiness",
+      "monthlyPrice": null,
+      "includedRequests": null,
+      "negotiated": true,
+      "note": "Volume above the highest published tier is priced individually, so the calculator reports no figure rather than extrapolating one."
+    }
+  }
+}

@@ -10,9 +10,14 @@ import type { Content, Locale } from "@/content";
 /**
  * Minimal white navbar:
  *   [Zonatic logo] ........... [Product · Solutions · Pricing · Docs]
- *                                          [ID | EN]   [Start later]]
  *
- * Mobile: hamburger + combined flat menu + language switcher + sign-in.
+ * No CTA on purpose: the primary action already appears in the hero, so a
+ * repeated header button added noise. With the CTA gone, the logo and the
+ * link group are the only two flex children and `justify-between` balances
+ * them — links stay anchored to the right edge at the same header height.
+ *
+ * Mobile: hamburger + flat list of the same links. The mobile menu carries no
+ * CTA either, for the same reason as desktop.
  *
  * The header is fixed; on-scroll it picks up a subtle border for
  * legibility once content scrolls under it.
@@ -71,16 +76,6 @@ export function Nav({
           ))}
         </ul>
 
-        <div className="hidden lg:flex items-center gap-3">
-          <Link
-            href="#get-started"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
-          >
-            {content.nav.getStarted}
-            <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -100,8 +95,6 @@ export function Nav({
       <MobileMenu
         open={open}
         links={content.nav.links}
-        locale={locale}
-        getStartedLabel={content.nav.getStarted}
         onNavigate={() => setOpen(false)}
       />
     </header>
@@ -111,14 +104,10 @@ export function Nav({
 function MobileMenu({
   open,
   links,
-  // locale unused after removing language switcher from mobile nav
-  getStartedLabel,
   onNavigate,
 }: {
   open: boolean;
   links: { label: string; href: string }[];
-  locale: Locale;
-  getStartedLabel: string;
   onNavigate: () => void;
 }) {
   if (!open) return null;
@@ -141,19 +130,6 @@ function MobileMenu({
             </li>
           ))}
         </ul>
-        <div className="mt-4 border-t border-slate-200 pt-4">
-          {/* Language switcher removed from mobile nav per design update */}
-        </div>
-        <div className="mt-3">
-          <Link
-            href="#get-started"
-            onClick={onNavigate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            {getStartedLabel}
-            <span aria-hidden="true">→</span>
-          </Link>
-        </div>
       </div>
     </div>
   );

@@ -4,9 +4,11 @@ import type { Content } from "./types";
  * Bahasa Indonesia content for the Zonatic landing page.
  *
  * Terminology follows the project glossary:
- *   - "Location Intelligence", "Location-aware", "API", "GeoJSON", "KML",
- *     "polygon", dan "territory" dipertahankan dalam bentuk aslinya (Inggris)
- *     ketika translasi akan terdengar janggal di konteks teknologi modern.
+ *   - "Location Intelligence", "API", "GeoJSON", "KML" dan "polygon"
+ *     dipertahankan dalam bentuk aslinya (Inggris) ketika translasi akan
+ *     terdengar janggal di konteks teknologi modern.
+ *   - "Zona" adalah istilah produk resmi (bukan "territory") dan dipakai
+ *     konsisten di seluruh halaman.
  *   - "Data Lokasi", "Wilayah Administratif", "Polygon Custom",
  *     "Infrastruktur Geografis" dipakai secara konsisten.
  */
@@ -16,7 +18,7 @@ export const id: Content = {
   meta: {
     title: "Zonatic — Infrastruktur Location Intelligence untuk Indonesia",
     description:
-      "Pahami lokasi, tentukan territory, dan bangun aplikasi yang sadar lokasi dengan infrastruktur geografis untuk Indonesia.",
+      "Pahami konteks lokasi Indonesia, bentuk zona, dan gunakan data geografis langsung di aplikasi Anda.",
     ogLocale: "id_ID",
     siteUrl: "https://www.zonatic.id",
   },
@@ -28,7 +30,7 @@ export const id: Content = {
     placeholderRouteNote:
       "Rute placeholder akan kembali ke dashboard setelah dokumentasi dan playground tersedia.",
     illustrativeNumbers:
-      "Angka-angka di atas bersifat illustratif untuk demonstrasi desain.",
+      "Angka-angka di atas bersifat ilustrasi untuk demonstrasi desain.",
     stepLabels: ["", "Langkah 1", "Langkah 2", "Langkah 3", "Langkah 4"],
     notFoundHeading: "Halaman tidak ditemukan",
     notFoundBody:
@@ -42,337 +44,214 @@ export const id: Content = {
     mobileOpen: "Buka menu",
     mobileClose: "Tutup menu",
     links: [
-      { label: "Produk", href: "#product" },
+      { label: "Produk", href: "#zonas" },
       { label: "Solusi", href: "#use-cases" },
-      { label: "Harga", href: "#pricing" },
-      { label: "Dokumentasi", href: "/docs" },
+      { label: "Harga", href: "#cost" },
     ],
   },
   hero: {
     eyebrow: "LOCATION INTELLIGENCE UNTUK INDONESIA",
-    headlineLine1: "Ubah data lokasi Anda",
-    headlineLine2: "menjadi",
+    headline: "Ubah data lokasi Anda menjadi",
     headlineHighlight: "insight yang nyata.",
     description:
-      "Pahami lokasi, tentukan territory, dan bangun aplikasi yang sadar lokasi dengan data geografis Indonesia yang akurat dan terpercaya.",
-    primaryCta: "Mulai sekarang",
-    secondaryCta: "Lihat dokumentasi",
-    ctaFineprint: "Tanpa kartu kredit · Akses API langsung · Dokumentasi terbuka",
-    pillars: [
-      {
-        label: "Data Lokasi",
-        description:
-          "Alamat, koordinat, dan data lokasi Anda.",
-        iconKey: "database",
-      },
-      {
-        label: "Geographic Intelligence",
-        description:
-          "Enrich, klarifikasi, dan pahami konteks Anda.",
-        iconKey: "globe",
-      },
-      {
-        label: "Territory",
-        description:
-          "Buat wilayah kerja dengan data administratif atau polygon custom.",
-        iconKey: "map",
-      },
-      {
-        label: "API",
-        description:
-          "Gunakan location intelligence di aplikasi Anda.",
-        iconKey: "code",
-      },
-    ],
-    map: {
-      searchPlaceholder: "Cari lokasi...",
-      zoomIn: "Perbesar",
-      zoomOut: "Perkecil",
-      reset: "Reset tampilan",
-      areaTitle: "Kebayoran Baru",
-      areaCountLabel: "lokasi",
-      summaryCard: {
-        totalLabel: "lokasi ditampilkan",
-        legend: [
-          { label: "Customer", count: 2421, dotClass: "bg-emerald-600" },
-          { label: "Outlet", count: 312, dotClass: "bg-emerald-300" },
-          { label: "Lainnya", count: 109, dotClass: "bg-slate-400" },
-        ],
-        disclaimer:
-          "Angka-angka di atas bersifat ilustratif untuk demonstrasi desain.",
-      },
-    },
+      "Pahami konteks lokasi, tentukan zona, dan gunakan data geografis langsung di aplikasi Anda.",
+    primaryCta: "Coba Zonatic",
+    secondaryCta: "Lihat dokumentasi API",
+    microRow: ["Data lokasi Indonesia", "Zona", "API & aturan berbasis lokasi"],
+    imageAlt:
+      "Ilustrasi datar Zonatic: data lokasi Indonesia dipetakan menjadi zona dan konteks geografis yang dipakai aplikasi.",
   },
   dataToIntel: {
-    eyebrow: "DARI DATA KE LOCATION INTELLIGENCE",
+    eyebrow: "DATA LOKASI",
     headline: "Bawa data Anda.",
     headlineHighlight: "Letakkan di peta.",
     description:
-      "Upload data customer, outlet, atau lokasi lainnya. Zonatic membantu memvalidasi lokasi, memperkaya data dengan geografi Indonesia, lalu memvisualisasikan dan menganalisisnya.",
-    steps: [
-      {
-        title: "Upload data lokasi",
-        description:
-          "Gunakan CSV, Excel, atau integrasi API untuk memasukkan data customer, outlet, atau titik lokasi Anda.",
-        mockRows: [
-          { id: "1", name: "Toko A", address: "Jl. Sudirman No. 1" },
-          { id: "2", name: "Toko B", address: "Jl. Gatot Subroto..." },
-          { id: "3", name: "Toko C", address: "Jl. Ahmad Yani..." },
-        ],
-      },
-      {
-        title: "Zonatic memvalidasi dan memperkaya",
-        description:
-          "Dapatkan koordinat, wilayah administratif, kode pos, dan atribusi lokasi untuk setiap record.",
-        stats: {
-          total: "12.431 record diproses",
-          items: [
-            { label: "Validasi alamat", iconKey: "check" },
-            { label: "Enrichment lokasi", iconKey: "check" },
-            { label: "Mapping wilayah", iconKey: "check" },
-            { label: "Deteksi duplikat", iconKey: "check" },
-          ],
-        },
-      },
-      {
-        title: "Visualisasikan dan analisis",
-        description:
-          "Lihat data di peta, analisis cakupan, dan temukan insight.",
-        map: {
-          areaName: "Area Analisis",
-          insideLabel: "di dalam",
-          outsideLabel: "di luar",
-        },
-      },
-    ],
+      "Gunakan data lokasi yang sudah Anda miliki untuk memahami konteks geografisnya, melihat pola sebaran, dan mengelompokkan lokasi sesuai kebutuhan.",
+    flowLabels: ["Dataset", "Proses enrichment", "Hasil lokasi"],
+    imageAlt:
+      "Ilustrasi alur enrichment Zonatic: dataset lokasi diproses menjadi hasil lokasi yang siap dianalisis.",
   },
-  territories: {
-    eyebrow: "KELOLA WILAYAH DENGAN MUDAH",
-    headline: "Tentukan territory Anda.",
+  zonas: {
+    eyebrow: "ZONA",
+    headline: "Tentukan zona sesuai kebutuhan bisnis.",
     description:
-      "Buat wilayah kerja menggunakan wilayah administratif Indonesia atau gambar batas Anda sendiri.",
-    createCta: "Buat territory",
-    ctaFootnote:
-      "Demonstrasi di landing page saja — pengelolaan territory sebenarnya ada di Console.",
-    cards: [
+      "Gabungkan wilayah administratif atau polygon custom menjadi zona yang dapat digunakan kembali untuk analisis, operasi, dan aturan berbasis lokasi.",
+    capabilities: [
       {
-        title: "Wilayah Administratif",
-        description:
-          "Pilih provinsi, kota, kecamatan, atau desa dari data resmi Indonesia.",
+        label: "Wilayah administratif",
+        description: "Pilih provinsi, kota, kecamatan, atau kelurahan.",
       },
       {
-        title: "Polygon Custom",
-        description:
-          "Gambar area sendiri atau import GeoJSON data tersebut.",
+        label: "Zona custom",
+        description: "Gunakan polygon sesuai kebutuhan.",
       },
       {
-        title: "Gabungkan dan Kelola",
-        description:
-          "Kombinasikan beberapa area administratif dan polygon custom dalam satu territory.",
+        label: "Zona reusable",
+        description: "Gunakan zona yang sama untuk analisis dan aturan berbasis lokasi.",
       },
     ],
-    cardHelpers: [
-      "Dari wilayah administratif resmi",
-      "Polygon yang Anda gambar sendiri",
-      "Gabungan keduanya dalam satu territory",
-    ],
-    polygonSupportedLabel: "GeoJSON / KML didukung",
-    adminTree: {
-      label: "Provinsi DKI Jakarta",
-      children: {
-        label: "Jakarta Pusat",
-        grandchildren: [
-          "Jakarta Pusat",
-          "Jakarta Utara",
-          "Jakarta Selatan",
-          "Jakarta Timur",
-        ],
-      },
-    },
-    summary: {
-      areaName: "Territory Area (3)",
-      badge: "Aktif",
-      areasLabel: "area",
-      locationsLabel: "lokasi",
-      items: [
-        { name: "Jakarta Pusat", count: 128 },
-        { name: "Jakarta Selatan", count: 342 },
-        { name: "Custom Area 1", count: 76 },
-      ],
-    },
+    imageAlt:
+      "Ilustrasi editor zona Zonatic: wilayah administratif digabung dengan polygon custom menjadi satu zona.",
   },
   api: {
-    eyebrow: "UNTUK DEVELOPER",
-    headline: "Dibangun untuk aplikasi Anda.",
+    eyebrow: "API & RULE BERBASIS LOKASI",
+    headline: "Jadikan konteks lokasi bagian dari aturan bisnis Anda.",
     description:
-      "Gunakan API Zonatic untuk menemukan lokasi, memeriksa territory, dan memperkaya location intelligence ke dalam aplikasi Anda.",
-    viewDocs: "Lihat dokumentasi",
-    tryPlayground: "Coba di Playground",
-    placeholderNote:
-      "Endpoint di bawah adalah endpoint yang benar-benar berjalan di Zonatic saat ini.",
-    codeTabs: [
-      {
-        label: "cURL",
-        language: "bash",
-        code: `# Reverse geocode
-curl -X GET "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.2088&longitude=106.8456" \\
-  -H "Authorization: Bearer YOUR_API_KEY"
-
-{
-  "latitude": -6.2088,
-  "longitude": 106.8456,
-  "matched": true,
-  "address": {
-    "province":    "DKI Jakarta",
-    "city":        "Jakarta Pusat",
-    "district":    "Tanah Abang",
-    "postal_code": "10220"
-  },
-  "areas": [...]
+      "Gunakan location primitives untuk membangun aplikasi, atau definisikan aturan berbasis lokasi melalui UI dan konsumsi hasilnya melalui API.",
+    flow: ["LOCATION", "ZONATIC API", "ZONA", "RULE", "RESULT"],
+    request: {
+      method: "GET",
+      path: "/v1/zones/lookup?lat=-6.2088&lng=106.8456",
+      label: "Request",
+    },
+    response: {
+      label: "Response",
+      json: `{
+  "zone_id": "ID-JK-3171",
+  "zone": "urban",
+  "score": 20,
+  "rules": [
+    "rule_a",
+    "rule_b",
+    "rule_c"
+  ]
 }`,
-      },
-      {
-        label: "JavaScript",
-        language: "javascript",
-        code: `const res = await fetch(
-  "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.2088&longitude=106.8456",
-  {
-    headers: { Authorization: "Bearer YOUR_API_KEY" }
-  }
-);
-const data = await res.json();
-console.log(data.address.city); // Jakarta Pusat`,
-      },
-      {
-        label: "Python",
-        language: "python",
-        code: `import requests
-
-res = requests.get(
-    "https://api.zonatic.id/v1/reverse-geocode",
-    params={"latitude": -6.2088, "longitude": 106.8456},
-    headers={"Authorization": "Bearer YOUR_API_KEY"},
-)
-data = res.json()
-print(data["address"]["city"])  # Jakarta Pusat`,
-      },
-    ],
-    endpointListTitle: "Endpoint populer",
-    endpointListDescription:
-      "Endpoint yang paling sering dipakai untuk mulai menggunakan Zonatic.",
-    endpointListItems: [
-      { method: "GET", path: "/v1/reverse-geocode", auth: false },
-      { method: "GET", path: "/v1/areas/search", auth: true },
-      { method: "GET", path: "/v1/areas/autocomplete", auth: false },
-      { method: "GET", path: "/v1/postal-codes/search", auth: true },
-    ],
-    seeAllCta: "Lihat semua endpoint",
+    },
+    rules: {
+      label: "Contoh rule dari response tersebut",
+      zoneLabel: "Zona",
+      zone: "Urban",
+      scoreLabel: "Score",
+      score: "+20",
+      items: [
+        { label: "Rule A", value: "matched", outcome: "positive" },
+        { label: "Rule B", value: "priority", outcome: "positive" },
+        { label: "Rule C", value: "applicable", outcome: "neutral" },
+      ],
+    },
+    disclaimer:
+      "Zonatic menyediakan konteks lokasi dan zona. Aturan serta keputusan bisnis tetap diterapkan oleh aplikasi Anda sendiri.",
   },
   useCases: {
-    eyebrow: "UNTUK TIM DI DUNIA NYATA",
+    eyebrow: "USE CASE",
     headline: "Location intelligence untuk berbagai industri.",
     description:
-      "Bantu tim di berbagai industri mengambil keputusan yang lebih baik dengan location intelligence.",
-    disclaimer:
-      "Zonatic bukan aplikasi collection management, sales, logistik, atau insurance. Zonatic menyediakan infrastruktur geografis yang dapat dipakai oleh aplikasi-aplikasi tersebut.",
+      "Gunakan data lokasi, zona, dan aturan berbasis lokasi sesuai kebutuhan bisnis Anda.",
     cases: [
       {
-        title: "Collection & Lending",
-        description:
-          "Petakan customer, tentukan area penagihan, dan tingkatkan efisiensi lapangan.",
+        title: "Lending & Finance",
+        description: "Rule, eligibility, dan analisis berbasis lokasi.",
         iconKey: "coins",
       },
       {
-        title: "Sales & Distribution",
-        description:
-          "Rencanakan territory, petakan outlet, dan organisasikan cakupan.",
+        title: "Retail",
+        description: "Analisis wilayah dan potensi ekspansi.",
         iconKey: "store",
       },
       {
-        title: "Service Operations",
-        description:
-          "Tentukan area layanan dan kelola operasi lapangan.",
-        iconKey: "wrench",
-      },
-      {
-        title: "Insurance",
-        description:
-          "Pahami area risiko dan kelola cakupan cabang.",
-        iconKey: "shield-check",
-      },
-      {
-        title: "Retail & FMCG",
-        description:
-          "Petakan outlet, rencanakan distribusi, dan analisis jangkauan pasar.",
-        iconKey: "shopping-basket",
-      },
-      {
         title: "Logistik",
-        description:
-          "Tentukan area pengiriman dan optimalkan coverage.",
+        description: "Zona layanan dan coverage area.",
         iconKey: "truck",
       },
+      {
+        title: "Marketing",
+        description: "Segmentasi dan targeting berdasarkan wilayah.",
+        iconKey: "target",
+      },
     ],
+    disclaimer:
+      "Use case di atas adalah contoh penerapan oleh pelanggan, bukan cakup fitur Zonatic.",
+  },
+  costEstimator: {
+    eyebrow: "LOCATION API COST",
+    headline: "Sudah terlalu banyak bayar untuk data lokasi?",
+    description:
+      "Gunakan data lokasi Indonesia dengan pendekatan yang lebih efisien.",
+    calculator: {
+      title: "Hitung perkiraan biaya location API Anda",
+      productLabel: "Location service",
+      productHint: "Pilih layanan lokasi yang paling sering Anda panggil.",
+      requestsLabel: "Monthly requests",
+      requestsHint: "Gunakan preset atau isi sendiri sesuai volume Anda.",
+      presets: ["10K", "100K", "1M", "5M", "10M"],
+      plans: {
+        planFree: "Free",
+        planDeveloper: "Developer",
+        planGrowth: "Growth",
+        planBusiness: "Business",
+      },
+      columnProvider: "Perkiraan biaya Google",
+      columnProviderNote: "Estimasi berdasarkan volume bulanan",
+      columnZonatic: "Zonatic",
+      columnZonaticNote: "Estimasi berdasarkan paket",
+      skuNote:
+        "Harga Google berbeda-beda per SKU dan field yang diminta. Estimasi ini memakai {product}.",
+      rateNote:
+        "Perbandingan dikonversi menggunakan kurs asumsi, bukan kurs live.",
+      estimateBadge: "Estimasi",
+      perMonthSuffix: "/bulan",
+      customPlanLabel: "Paket disesuaikan",
+      comparisonTitle: "Perbandingan biaya",
+      savingsTitle: "Potensi penghematan",
+      savingsNote: "Dibandingkan estimasi {provider} pada {volume}.",
+      higherNote: "Estimasi {provider} lebih rendah pada {volume}.",
+      equalNote: "Estimasi biaya setara",
+      comparisonUnavailable:
+        "Perbandingan biaya tidak dapat dihitung untuk volume ini.",
+      requestVolumeUnit: "request/bulan",
+      sourceNote: "Harga provider diperiksa {date}.",
+      emptyState:
+        "Masukkan jumlah request per bulan untuk melihat perkiraan biaya.",
+      disclaimer:
+        "Perkiraan berdasarkan volume penggunaan. Harga aktual dapat berbeda berdasarkan SKU, field yang diminta, volume tier, dan konfigurasi penggunaan. Harga Zonatic di sini masih hipotesis internal, bukan harga final.",
+    },
+    explainer: {
+      title: "Zonatic adalah lapisan tambahan, bukan pengganti.",
+      points: [
+        "Zonatic bukan berarti Anda harus meninggalkan provider global.",
+        "Gunakan provider global untuk kebutuhan yang memang membutuhkan coverage, Places, atau layanan lain yang tidak disediakan Zonatic.",
+        "Untuk location resolution Indonesia yang dapat diselesaikan dari data lokal, Zonatic dapat menjadi layer yang lebih efisien.",
+      ],
+    },
+    cta: {
+      primary: "Coba Zonatic",
+      secondary: "Mulai dari kebutuhan lokasi Indonesia Anda.",
+      href: "mailto:hello@zonatic.id",
+    },
   },
   finalCta: {
-    eyebrow: "MULAI HARI INI",
-    headline: "Jadikan data Anda location-aware.",
+    eyebrow: "ZONA · RULE · API",
+    headline: "Jadikan data Anda lebih bermakna.",
     description:
-      "Bangun produk yang lebih cerdas dengan infrastruktur geografis untuk Indonesia.",
-    primaryCta: "Mulai sekarang",
-    secondaryCta: "Hubungi kami",
+      "Pahami konteks lokasi, bentuk zona, dan gunakan informasi geografis langsung di aplikasi Anda.",
+    primaryCta: "Mulai dengan Zonatic",
+    secondaryCta: "Lihat dokumentasi API",
   },
   footer: {
     tagline: "Infrastruktur location intelligence untuk Indonesia.",
+    copyrightYear: "2026",
     copyright: "Hak cipta dilindungi.",
-    jurisdiction: "Infrastruktur location intelligence untuk Indonesia.",
-    legalLinks: ["Kebijakan Privasi", "Syarat Layanan"],
-    socials: [
-      {
-        label: "GitHub",
-        href: "https://github.com/heritechie/zonatic",
-        iconKey: "github",
-      },
-      {
-        label: "LinkedIn",
-        href: "https://www.linkedin.com/company/zonatic",
-        iconKey: "linkedin",
-      },
-    ],
     columns: [
       {
         title: "Produk",
         links: [
-          { label: "Location Intelligence", href: "#hero" },
-          { label: "Territory", href: "#territories" },
-          { label: "Data Lokasi", href: "#data" },
-          { label: "API", href: "#api" },
+          { label: "Location Intelligence" },
+          { label: "Zona" },
+          { label: "API" },
         ],
       },
       {
-        title: "Solusi",
+        title: "Developer",
         links: [
-          { label: "Perusahaan", href: "#use-cases" },
-          { label: "Startup", href: "#use-cases" },
-          { label: "Developer", href: "#use-cases" },
-          { label: "Operasi Lapangan", href: "#use-cases" },
-        ],
-      },
-      {
-        title: "Dokumentasi",
-        links: [
-          { label: "Perusahaan", href: "/docs" },
-          { label: "Tentang", href: "/about" },
-          { label: "API Reference", href: "/docs" },
-          { label: "Contoh", href: "/docs" },
+          { label: "Dokumentasi API" },
+          { label: "API Reference" },
         ],
       },
       {
         title: "Perusahaan",
         links: [
-          { label: "Tentang", href: "/about" },
-          { label: "Privasi", href: "/privacy" },
-          { label: "Syarat & Ketentuan", href: "/terms" },
+          { label: "Tentang Zonatic", href: "/about" },
+          { label: "Kontak", href: "mailto:hello@zonatic.id" },
         ],
       },
     ],
