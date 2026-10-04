@@ -21,21 +21,33 @@
 
 	# The GraphQL API. Kept on the same origin as the console so the browser
 	# never makes a cross-origin request and no CORS preflight is needed.
-	handle /graphql* {
+	#
+	# Declared as a `route` (not a `handle`) and placed at the TOP of the
+	# block so it is matched first. Caddy v2 evaluates routes in adapted
+	# order, and `try_files` (used below for the SPA fallback) would
+	# otherwise rewrite the URI to /index.html before this matcher runs,
+	# making /graphql fall through to the SPA shell.
+	route /graphql* {
 		reverse_proxy 127.0.0.1:{$CONSOLE_API_PORT:8000}
 	}
 
-	# Vite emits content-hashed filenames under /assets, so they can be cached
-	# indefinitely.
-	@assets path /assets/*
-	header @assets Cache-Control "public, max-age=31536000, immutable"
+	# Static SPA + history-mode fallback. Wrapped in a `route` block so its
+	# `try_files` and `file_server` only run when the API route above does
+	# not match.
+	route {
+		# Vite emits content-hashed filenames under /assets, so they can be
+		# cached indefinitely.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
 
-	# index.html points at the hashed assets, so it must never be cached or
-	# clients keep requesting asset URLs from a previous deploy.
-	header /index.html Cache-Control "no-store"
+		# index.html points at the hashed assets, so it must never be cached
+		# or clients keep requesting asset URLs from a previous deploy.
+		header /index.html Cache-Control "no-store"
 
-	# vue-router runs in history mode (createWebHistory), so unknown paths are
-	# client-side routes and must fall back to the SPA shell instead of 404.
-	try_files {path} /index.html
-	file_server
+		# vue-router runs in history mode (createWebHistory), so unknown
+		# paths are client-side routes and must fall back to the SPA shell
+		# instead of 404.
+		try_files {path} /index.html
+		file_server
+	}
 }

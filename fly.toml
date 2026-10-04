@@ -5,9 +5,22 @@
 # Run, so moving back to Cloud Run later is a swap of hosting provider, not a
 # code change.
 #
-# No secret material is stored in this file. Build-time Vite values are
-# pulled from `fly secrets` via the `$NAME` substitution syntax; runtime
-# secrets (DATABASE_URL, SUPABASE_*) are also `fly secrets`, never `fly.toml`.
+# No secret material is stored in this file.
+#
+# [build.args] below holds only non-secret Vite literals that Vite inlines
+# into the JS bundle at build time: VITE_GRAPHQL_URL, VITE_CONSOLE_URL,
+# VITE_SITE_URL. They are committed alongside this file.
+#
+# VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are NOT set here. Fly does
+# not expose runtime secrets to builds, so the `$NAME` placeholder syntax
+# has no effect and would be inlined as a literal string into the bundle
+# (causing supabase-js to throw at runtime). Those two values are passed
+# to `fly deploy` via `--build-arg` at deploy time, sourced out-of-band
+# (local .env, CI secrets, etc.).
+#
+# Runtime secrets for the console-api process (DATABASE_URL, SUPABASE_URL,
+# SUPABASE_ANON_KEY, CORS_ORIGINS) are stored with `fly secrets` and
+# injected into the running machine. They are never read by the build.
 
 app = "zonatic-console"
 primary_region = "sin"
@@ -21,12 +34,11 @@ internal_port = 8080
 [build]
   dockerfile = "apps/console/Dockerfile.prod"
 
-# Vite inlines these into the JS bundle at build time. The actual literals
-# come from `fly secrets` — never from this file. `$NAME` is Fly's
-# substitution syntax for secrets during build.
+# Vite inlines VITE_* variables into the JS bundle at build time. Only
+# non-secret literals live here. SUPABASE_URL and SUPABASE_ANON_KEY are
+# injected at deploy time via `--build-arg`; they are never substituted
+# from `fly secrets` (Fly does not expose secrets to builds).
 [build.args]
-  VITE_SUPABASE_URL = "$SUPABASE_URL"
-  VITE_SUPABASE_ANON_KEY = "$SUPABASE_ANON_KEY"
   VITE_GRAPHQL_URL = "/graphql"
   VITE_CONSOLE_URL = "https://console.zonatic.id"
   VITE_SITE_URL = "https://zonatic.id"
