@@ -1,0 +1,94 @@
+# syntax=docker/dockerfile:1
+
+# Production image for the `zonatic-console` Cloud Run service.
+#
+# This image serves BOTH halves of the console from a single public port:
+#   - the built console SPA (static files)
+#   - /graphql, reverse proxied to the console-api process
+#
+# Keeping them in one service is deliberate: the browser then talks to a
+# single origin, so there is no cross-origin request and no CORS preflight.
+#
+# The existing apps/console/Dockerfile is left untouched — it still serves
+# local development through docker compose (`pnpm dev` on port 5173).
+
+# ── Stage 1: build ───────────────────────────────────────────────────────────
+FROM node:22-alpine AS build
+
+ENV CI=true
+WORKDIR /src
+
+# pnpm is pinned rather than taken from corepack because the repository has no
+# "packageManager" field, so corepack would resolve an unpinned version.
+RUN npm install -g pnpm@10
+
+# Manifests are copied before the source so that the dependency layer is only
+# rebuilt when the lockfile actually changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/console/package.json ./apps/console/
+COPY apps/console-api/package.json ./apps/console-api/
+RUN pnpm install --frozen-lockfile
+
+COPY apps/console ./apps/console
+COPY apps/console-api ./apps/console-api
+
+# Vite inlines VITE_* variables into the JavaScript bundle at build time, so
+# they are build arguments, not runtime environment variables. The runtime
+# values for console-api are supplied by Cloud Run instead.
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_GRAPHQL_URL=/graphql
+ARG VITE_CONSOLE_URL
+ARG VITE_SITE_URL
+ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
+    VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} \
+    VITE_GRAPHQL_URL=${VITE_GRAPHQL_URL} \
+    VITE_CONSOLE_URL=${VITE_CONSOLE_URL} \
+    VITE_SITE_URL=${VITE_SITE_URL}
+
+RUN pnpm --filter @zonatic/console build
+
+# `pnpm deploy --prod` produces a self-contained folder holding only the
+# production dependencies, which is what the runtime stage copies.
+#
+# --legacy is required: pnpm v10 refuses to deploy from a workspace that does
+# not set inject-workspace-packages=true. It is safe here because
+# @zonatic/console-api has no workspace dependencies.
+#
+# dist is copied explicitly after the build rather than relying on `deploy` to
+# carry it, and the target is removed first so the copy cannot end up nested
+# at /out/api/dist/dist.
+RUN pnpm --filter @zonatic/console-api deploy --prod --legacy /out/api \
+ && pnpm --filter @zonatic/console-api build \
+ && rm -rf /out/api/dist \
+ && cp -R apps/console-api/dist /out/api/dist
+
+# ── Stage 2: runtime ────────────────────────────────────────────────────────
+FROM node:22-alpine AS runtime
+
+# Caddy serves the static build and proxies /graphql. It runs from the same
+# base image as Node so one container can host both processes.
+RUN apk add --no-cache caddy \
+ && adduser -D -H -u 10001 zonatic
+
+WORKDIR /srv
+
+ENV NODE_ENV=production \
+    PORT=8080 \
+    CONSOLE_API_PORT=8000 \
+    XDG_CONFIG_HOME=/tmp/caddy/config \
+    XDG_DATA_HOME=/tmp/caddy/data
+
+COPY --from=build --chown=zonatic:zonatic /out/api /srv/api
+COPY --from=build --chown=zonatic:zonatic /src/apps/console/dist /srv/www
+COPY --chown=zonatic:zonatic apps/console/Caddyfile /etc/caddy/Caddyfile
+COPY --chown=zonatic:zonatic apps/console/start-console.sh /usr/local/bin/start-console
+
+# Do not rely on the repository's file mode for the entry point.
+RUN chmod +x /usr/local/bin/start-console
+
+USER zonatic
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/start-console"]
