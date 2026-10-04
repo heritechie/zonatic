@@ -88,6 +88,9 @@ jobs:
             --build-arg VITE_SITE_URL="${VITE_SITE_URL}" \
             .
 
+          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:latest"
+
       # ── Deploy ──────────────────────────────────────────────────────
       # Only the image is replaced. DATABASE_URL, SUPABASE_URL,
       # SUPABASE_ANON_KEY, CORS_ORIGINS and any Secret Manager bindings stay
