@@ -1,0 +1,110 @@
+name: Deploy console
+
+# Deploys the `zonatic-console` Cloud Run service, which serves the console SPA
+# and /graphql from a single origin.
+#
+# No cloud credential is stored in this repository. GitHub exchanges a
+# short-lived OIDC token for a Google access token via Workload Identity
+# Federation, so there is no service account JSON key anywhere.
+
+# Manual run only — push-to-main auto-deploy is disabled.
+# Cloud Run provisioning (project, Artifact Registry, WIF, service accounts,
+# Secret Manager bindings, domain mappings) is expected to be done by hand
+# once, after which this workflow replaces the image on demand.
+on:
+  workflow_dispatch:
+
+# Only one console deploy at a time; a newer push should not queue behind an
+# older deploy of the same service.
+concurrency:
+  group: deploy-console-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGION: asia-southeast1
+  SERVICE_NAME: zonatic-console
+  REPOSITORY: zonatic
+  # IMAGE is fully qualified so Artifact Registry is never ambiguous.
+  IMAGE: asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/zonatic/console
+
+jobs:
+  deploy:
+    name: Build and deploy console
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # Required to mint the OIDC token that Workload Identity Federation
+      # exchanges for Google credentials. This grants no access by itself.
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # ── Authenticate to Google Cloud ────────────────────────────────
+      # Uses OIDC + Workload Identity Federation. Never uses a JSON key.
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ── Build ───────────────────────────────────────────────────────
+      - name: Build console image
+        uses: google-github-actions/docker-auth@v3
+        with:
+          registry: asia-southeast1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Build and push console image
+        env:
+          # Vite inlines these into the bundle, so they must be present during
+          # `docker build`. They are Supabase *publishable* values (the anon
+          # key cannot read the database) and are therefore supplied as GitHub
+          # repository variables, not secrets. No database credential,
+          # service account key, or API key is used at build time.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          # Same origin as the console, served through the same Cloud Run
+          # service, so the browser makes no cross-origin request.
+          VITE_GRAPHQL_URL: /graphql
+          VITE_CONSOLE_URL: ${{ vars.VITE_CONSOLE_URL }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+        run: |
+          docker build \
+            --file apps/console/Dockerfile.prod \
+            --tag "${IMAGE}:${{ github.sha }}" \
+            --tag "${IMAGE}:latest" \
+            --build-arg VITE_SUPABASE_URL="${VITE_SUPABASE_URL}" \
+            --build-arg VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY}" \
+            --build-arg VITE_GRAPHQL_URL="${VITE_GRAPHQL_URL}" \
+            --build-arg VITE_CONSOLE_URL="${VITE_CONSOLE_URL}" \
+            --build-arg VITE_SITE_URL="${VITE_SITE_URL}" \
+            .
+
+      # ── Deploy ──────────────────────────────────────────────────────
+      # Only the image is replaced. DATABASE_URL, SUPABASE_URL,
+      # SUPABASE_ANON_KEY, CORS_ORIGINS and any Secret Manager bindings stay
+      # as configured on the service, so no secret ever passes through GitHub.
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE_NAME}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --region="${REGION}" \
+            --platform=managed \
+            --image="${IMAGE}:${{ github.sha }}" \
+            --service-account="${{ vars.GCP_CONSOLE_RUNTIME_SERVICE_ACCOUNT }}" \
+            --port=8080 \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Summary
+        run: |
+          echo "Deployed ${IMAGE}:${{ github.sha }} to Cloud Run ${SERVICE_NAME} (${REGION})"
+          echo "Console URL: ${{ steps.auth.outputs.project_id }} -> https://${SERVICE_NAME}-${REGION}.a.run.app"
