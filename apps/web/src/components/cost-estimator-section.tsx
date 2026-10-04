@@ -212,7 +212,7 @@ export function CostEstimatorSection({ content }: { content: Content }) {
 
           <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <Link
-              href={c.cta.href}
+              href={content.meta.consoleUrl}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
               {c.cta.primary}

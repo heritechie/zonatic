@@ -21,6 +21,7 @@ export const id: Content = {
       "Pahami konteks lokasi Indonesia, bentuk zona, dan gunakan data geografis langsung di aplikasi Anda.",
     ogLocale: "id_ID",
     siteUrl: "https://www.zonatic.id",
+    consoleUrl: "https://console.zonatic.id",
   },
   common: {
     skipToContent: "Lewati ke konten",
@@ -216,7 +217,6 @@ export const id: Content = {
     cta: {
       primary: "Coba Zonatic",
       secondary: "Mulai dari kebutuhan lokasi Indonesia Anda.",
-      href: "mailto:hello@zonatic.id",
     },
   },
   finalCta: {
@@ -248,10 +248,10 @@ export const id: Content = {
         ],
       },
       {
-        title: "Perusahaan",
+        title: "Legal",
         links: [
-          { label: "Tentang Zonatic", href: "/about" },
-          { label: "Kontak", href: "mailto:hello@zonatic.id" },
+          { label: "Syarat dan Ketentuan", href: "/terms" },
+          { label: "Kebijakan Privasi", href: "/privacy" },
         ],
       },
     ],

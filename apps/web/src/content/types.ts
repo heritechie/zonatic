@@ -54,6 +54,12 @@ export type Content = {
     description: string;
     ogLocale: string;
     siteUrl: string;
+    /**
+     * Public origin of the Zonatic console. Used by every primary
+     * product-start CTA on the landing page so the URL is defined once per
+     * locale and never duplicated across components.
+     */
+    consoleUrl: string;
   };
 common: {
     skipToContent: string;
@@ -271,8 +277,6 @@ common: {
     cta: {
       primary: string;
       secondary: string;
-      /** Placeholder until the console's public origin is confirmed. */
-      href: string;
     };
   };
   finalCta: {

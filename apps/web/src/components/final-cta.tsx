@@ -40,7 +40,7 @@ export function FinalCTA({ content }: { content: Content }) {
           </p>
           <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row">
             <Link
-              href="mailto:hello@zonatic.id"
+              href={content.meta.consoleUrl}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-slate-50 transition-colors"
             >
               {c.primaryCta}

@@ -15,6 +15,7 @@ export const en: Content = {
       "Understand location context in Indonesia, define zonas, and use geographic data directly in your application.",
     ogLocale: "en_ID",
     siteUrl: "https://www.zonatic.id",
+    consoleUrl: "https://console.zonatic.id",
   },
   common: {
     skipToContent: "Skip to content",
@@ -214,7 +215,6 @@ export const en: Content = {
     cta: {
       primary: "Try Zonatic",
       secondary: "Start with your Indonesian location needs.",
-      href: "mailto:hello@zonatic.id",
     },
   },
   finalCta: {
@@ -225,7 +225,7 @@ export const en: Content = {
     primaryCta: "Start with Zonatic",
     secondaryCta: "View API documentation",
   },
-  footer: {
+footer: {
     tagline: "Location intelligence infrastructure for Indonesia.",
     copyrightYear: "2026",
     copyright: "All rights reserved.",
@@ -246,10 +246,10 @@ export const en: Content = {
         ],
       },
       {
-        title: "Company",
+        title: "Legal",
         links: [
-          { label: "About Zonatic", href: "/about" },
-          { label: "Contact", href: "mailto:hello@zonatic.id" },
+          { label: "Terms of Service", href: "/terms" },
+          { label: "Privacy Policy", href: "/privacy" },
         ],
       },
     ],
