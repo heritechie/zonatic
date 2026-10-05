@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
@@ -177,88 +178,322 @@ def test_autocomplete_case_insensitive():
     assert data["results"][0]["code"] == "317101"
 
 
+def _link_postal_code(postal_code: str, area_codes: tuple[str, ...]) -> None:
+    """Associate one postal code with one or more administrative areas.
+
+    Test-only. Production data contains exactly one area per postal code, so
+    the many-to-many path is never exercised by real data. This helper builds
+    those links using the existing `postal_code_areas` schema without changing
+    it, which is what lets the lookup tests prove the M:N model is represented
+    correctly in the public contract.
+
+    The extra rows are removed by the next `_reset_db()` call.
+    """
+    with SessionLocal() as db:
+        db.execute(
+            text(
+                """
+                INSERT INTO postal_codes (code, metadata)
+                VALUES (:code, '{"source":"test","type":"synthetic"}')
+                ON CONFLICT (code) DO NOTHING
+                """
+            ),
+            {"code": postal_code},
+        )
+        for area_code in area_codes:
+            db.execute(
+                text(
+                    """
+                    INSERT INTO postal_code_areas (postal_code_id, administrative_area_id)
+                    SELECT pc.id, aa.id
+                    FROM postal_codes pc
+                    JOIN administrative_areas aa ON aa.code = :area_code
+                    WHERE pc.code = :code
+                    ON CONFLICT DO NOTHING
+                    """
+                ),
+                {"code": postal_code, "area_code": area_code},
+            )
+        db.commit()
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/postal-codes/{code}
+# ---------------------------------------------------------------------------
+
+
 def test_postal_code_lookup():
     _setup_fixtures()
     resp = client.get("/v1/postal-codes/10270", headers=_auth_header())
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["code"] == "10270"
-    assert len(data["areas"]) == 1
-    assert data["areas"][0]["code"] == "3171011001"
-    assert data["areas"][0]["name"] == "Kelurahan Gelora"
+    areas = resp.json()["data"]["areas"]
+    assert isinstance(areas, list)
+    assert len(areas) == 1
+    assert areas[0]["code"] == "3171011001"
+    assert areas[0]["name"] == "Kelurahan Gelora"
+
+
+def test_postal_code_lookup_uses_data_envelope():
+    _setup_fixtures()
+    body = client.get("/v1/postal-codes/10270", headers=_auth_header()).json()
+    assert set(body) == {"data"}
+    assert body["data"]["code"] == "10270"
+
+
+def test_postal_code_lookup_uses_canonical_level_names():
+    """`level` is the canonical enum name, not the raw administrative integer.
+
+    The seeded fixtures cover district and village; province and regency are
+    linked through test-only rows so all four enum members are exercised.
+    """
+    _setup_fixtures()
+    village = client.get("/v1/postal-codes/10270", headers=_auth_header()).json()
+    district = client.get("/v1/postal-codes/10210", headers=_auth_header()).json()
+
+    assert village["data"]["areas"][0]["level"] == "village"
+    assert district["data"]["areas"][0]["level"] == "district"
+    assert "level" not in (1, 2, 3, 4)
+
+    _link_postal_code("10230", ("31", "3171"))
+    levels = {
+        area["level"]
+        for area in client.get(
+            "/v1/postal-codes/10230", headers=_auth_header()
+        ).json()["data"]["areas"]
+    }
+    assert levels == {"province", "regency"}
+
+
+def test_postal_code_lookup_includes_full_hierarchy():
+    _setup_fixtures()
+    resp = client.get("/v1/postal-codes/10270", headers=_auth_header())
+    area = resp.json()["data"]["areas"][0]
+    assert area["hierarchy"] == {
+        "province": {"code": "31", "name": "DKI Jakarta"},
+        "regency": {"code": "3171", "name": "Kota Administrasi Jakarta Pusat"},
+        "district": {"code": "317101", "name": "Kecamatan Tanah Abang"},
+        "village": {"code": "3171011001", "name": "Kelurahan Gelora"},
+    }
+
+
+def test_postal_code_lookup_does_not_leak_internal_fields():
+    """No metadata, parent_code, internal id, or provider bookkeeping."""
+    _setup_fixtures()
+    _link_postal_code("10230", ("3171011001", "3171"))
+
+    body = client.get("/v1/postal-codes/10230", headers=_auth_header()).json()
+
+    assert "metadata" not in body
+    assert "metadata" not in body["data"]
+    assert set(body["data"]) == {"code", "areas"}
+    for area in body["data"]["areas"]:
+        assert set(area) == {"code", "name", "level", "hierarchy"}
+        assert "parent_code" not in area
+        assert "id" not in area
+        for node in area["hierarchy"].values():
+            assert set(node) == {"code", "name"}
+
+
+def test_postal_code_lookup_returns_all_related_areas_as_array():
+    """The relationship is many-to-many, so `areas` must never collapse to one."""
+    _setup_fixtures()
+    _link_postal_code("10230", ("3171011001", "3171"))
+
+    resp = client.get("/v1/postal-codes/10230", headers=_auth_header())
+    assert resp.status_code == 200
+    areas = resp.json()["data"]["areas"]
+
+    assert isinstance(areas, list)
+    assert len(areas) == 2
+    # Ordered by administrative level ascending, then code ascending.
+    assert [a["code"] for a in areas] == ["3171", "3171011001"]
+    assert [a["level"] for a in areas] == ["regency", "village"]
+    # Every related area carries its own hierarchy.
+    assert areas[0]["hierarchy"]["province"]["code"] == "31"
+    assert areas[1]["hierarchy"]["district"]["code"] == "317101"
 
 
 def test_postal_code_lookup_not_found():
     _setup_fixtures()
     resp = client.get("/v1/postal-codes/99999", headers=_auth_header())
     assert resp.status_code == 404
+    error = resp.json()["error"]
+    assert error["code"] == "POSTAL_CODE_NOT_FOUND"
+    assert error["message"]
 
 
-def test_postal_code_search_by_code():
+# ---------------------------------------------------------------------------
+# GET /v1/postal-codes/search
+# ---------------------------------------------------------------------------
+
+
+def test_postal_code_search_by_code_prefix():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "102"}, headers=_auth_header())
+    resp = client.get(
+        "/v1/postal-codes/search", params={"q": "102"}, headers=_auth_header()
+    )
     assert resp.status_code == 200
-    data = resp.json()
-    codes = [pc["code"] for pc in data]
-    assert "10270" in codes
-    assert "10210" in codes
+    body = resp.json()
+    assert [pc["code"] for pc in body["data"]] == ["10210", "10270"]
+    assert body["meta"] == {"limit": 20, "count": 2}
 
 
-def test_postal_code_search_by_area_name():
+def test_postal_code_search_response_shape():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "Gelora"}, headers=_auth_header())
-    assert resp.status_code == 200
-    data = resp.json()
-    codes = [pc["code"] for pc in data]
-    assert "10270" in codes
+    body = client.get(
+        "/v1/postal-codes/search", params={"q": "10270"}, headers=_auth_header()
+    ).json()
+
+    assert set(body) == {"data", "meta"}
+    assert set(body["data"][0]) == {"code", "areas"}
+    assert body["data"][0]["areas"][0]["level"] == "village"
+    assert "hierarchy" in body["data"][0]["areas"][0]
+    assert body["meta"]["count"] == 1
+
+
+def test_postal_code_search_is_case_insensitive():
+    """`ILIKE` is case-insensitive.
+
+    Production codes are numeric, so case can only be observed against a
+    synthetic test-only code.
+    """
+    _setup_fixtures()
+    _link_postal_code("tEsT9999", ("3171011001",))
+
+    lower = client.get(
+        "/v1/postal-codes/search", params={"q": "test"}, headers=_auth_header()
+    ).json()
+    upper = client.get(
+        "/v1/postal-codes/search", params={"q": "TEST"}, headers=_auth_header()
+    ).json()
+
+    assert [pc["code"] for pc in lower["data"]] == ["tEsT9999"]
+    assert [pc["code"] for pc in upper["data"]] == ["tEsT9999"]
+
+
+def test_postal_code_search_does_not_match_substrings():
+    """Prefix matching only: an infix fragment must not match."""
+    _setup_fixtures()
+    for q in ("027", "270", "70"):
+        body = client.get(
+            "/v1/postal-codes/search", params={"q": q}, headers=_auth_header()
+        ).json()
+        assert body["data"] == [], q
+        assert body["meta"]["count"] == 0
+
+
+def test_postal_code_search_ignores_area_names():
+    """`/v1/areas` is the primitive for area-name lookup."""
+    _setup_fixtures()
+    body = client.get(
+        "/v1/postal-codes/search", params={"q": "Gelora"}, headers=_auth_header()
+    ).json()
+    assert body["data"] == []
+    assert body["meta"] == {"limit": 20, "count": 0}
 
 
 def test_postal_code_search_no_results():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "zzz"}, headers=_auth_header())
+    resp = client.get(
+        "/v1/postal-codes/search", params={"q": "zzz"}, headers=_auth_header()
+    )
     assert resp.status_code == 200
-    data = resp.json()
-    assert data == []
+    assert resp.json()["data"] == []
 
 
-def test_postal_code_search_limit():
+def test_postal_code_search_default_limit():
     _setup_fixtures()
-    resp = client.get("/v1/postal-codes/search", params={"q": "10", "limit": 1}, headers=_auth_header())
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) <= 1
+    body = client.get(
+        "/v1/postal-codes/search", params={"q": "102"}, headers=_auth_header()
+    ).json()
+    assert body["meta"]["limit"] == 20
+
+
+def test_postal_code_search_custom_limit():
+    _setup_fixtures()
+    body = client.get(
+        "/v1/postal-codes/search",
+        params={"q": "102", "limit": 1},
+        headers=_auth_header(),
+    ).json()
+    assert len(body["data"]) == 1
+    assert body["meta"] == {"limit": 1, "count": 1}
+
+
+@pytest.mark.parametrize("limit", [0, -1, 101, 1000])
+def test_postal_code_search_rejects_out_of_range_limit(limit):
+    _setup_fixtures()
+    resp = client.get(
+        "/v1/postal-codes/search",
+        params={"q": "102", "limit": limit},
+        headers=_auth_header(),
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+@pytest.mark.parametrize("params", [{}, {"q": ""}])
+def test_postal_code_search_requires_query(params):
+    _setup_fixtures()
+    resp = client.get("/v1/postal-codes/search", params=params, headers=_auth_header())
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+def test_postal_code_search_supports_multiple_areas_per_code():
+    _setup_fixtures()
+    _link_postal_code("10230", ("3171011001", "3171"))
+
+    body = client.get(
+        "/v1/postal-codes/search", params={"q": "1023"}, headers=_auth_header()
+    ).json()
+
+    assert [pc["code"] for pc in body["data"]] == ["10230"]
+    assert [a["code"] for a in body["data"][0]["areas"]] == ["3171", "3171011001"]
+    assert body["meta"]["count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/areas/{code}/postal-codes (reverse relation of the area resource)
+# ---------------------------------------------------------------------------
 
 
 def test_area_postal_codes():
     _setup_fixtures()
-    resp = client.get("/v1/areas/3171011001/postal-codes", headers=_auth_header())
+    resp = client.get(
+        "/v1/areas/3171011001/postal-codes", headers=_auth_header()
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["code"] == "3171011001"
     assert data["name"] == "Kelurahan Gelora"
-    assert len(data["postal_codes"]) == 1
-    assert data["postal_codes"][0]["code"] == "10270"
+    assert data["postal_codes"] == ["10270"]
 
 
 def test_area_postal_codes_parent():
     _setup_fixtures()
     resp = client.get("/v1/areas/317101/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["code"] == "317101"
-    assert len(data["postal_codes"]) == 1
-    assert data["postal_codes"][0]["code"] == "10210"
+    assert resp.json()["postal_codes"] == ["10210"]
+
+
+def test_area_postal_codes_multiple():
+    _setup_fixtures()
+    _link_postal_code("10230", ("3171011001",))
+
+    resp = client.get("/v1/areas/3171011001/postal-codes", headers=_auth_header())
+    assert resp.json()["postal_codes"] == ["10230", "10270"]
 
 
 def test_area_postal_codes_not_found():
     _setup_fixtures()
-    resp = client.get("/v1/areas/99.99.99/postal-codes", headers=_auth_header())
+    resp = client.get("/v1/areas/999999/postal-codes", headers=_auth_header())
     assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "AREA_NOT_FOUND"
 
 
 def test_area_postal_codes_empty():
     _setup_fixtures()
     resp = client.get("/v1/areas/31/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["postal_codes"] == []
+    assert resp.json()["postal_codes"] == []

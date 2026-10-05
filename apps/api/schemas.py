@@ -44,23 +44,6 @@ class AreaAutocompleteResponse(BaseModel):
     results: list[AreaAutocompleteResult]
 
 
-class PostalCodeResult(BaseModel):
-    code: str
-    metadata: dict[str, Any]
-
-
-class PostalCodeResponse(BaseModel):
-    code: str
-    metadata: dict[str, Any]
-    areas: list[Area]
-
-
-class AreaPostalCodesResponse(BaseModel):
-    code: str
-    name: str
-    postal_codes: list[PostalCodeResult]
-
-
 class BreadcrumbItem(BaseModel):
     code: str
     name: str
@@ -143,3 +126,48 @@ class AreasListResponse(BaseModel):
 
 class AreaSingleResponse(BaseModel):
     data: AreaPublic
+
+
+# ---------------------------------------------------------------------------
+# Public contract for `/v1/postal-codes/{code}` and `/v1/postal-codes/search`.
+#
+# Aligned with the `/v1/areas` contract: `level` is the canonical level name,
+# `hierarchy` is the geographic dict produced by the same `_build_hierarchy()`
+# helper, and list endpoints wrap results in `{"data": [...], "meta": {...}}`.
+#
+# `areas` is always an array because `postal_code_areas` is genuinely
+# many-to-many. A postal code may be associated with several administrative
+# areas, and this API deliberately does not restrict that relationship to a
+# single administrative level.
+#
+# Import/provider bookkeeping (`metadata`) and internal identifiers (`id`,
+# `parent_code`) are intentionally not exposed: they are dataset provenance,
+# not part of the public product contract.
+# ---------------------------------------------------------------------------
+
+
+class PostalCodePublic(BaseModel):
+    code: str
+    areas: list[AreaPublic]
+
+
+class PostalCodeLookupResponse(BaseModel):
+    data: PostalCodePublic
+
+
+class PostalCodeSearchMeta(BaseModel):
+    limit: int
+    count: int
+
+
+class PostalCodeSearchResponse(BaseModel):
+    data: list[PostalCodePublic]
+    meta: PostalCodeSearchMeta
+
+
+class AreaPostalCodesResponse(BaseModel):
+    """Reverse relation: the postal codes covering one administrative area."""
+
+    code: str
+    name: str
+    postal_codes: list[str]

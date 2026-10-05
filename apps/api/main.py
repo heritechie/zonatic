@@ -13,7 +13,7 @@ from apps.api.dependencies import get_current_tenant
 from apps.api.exceptions import (
     AreaNotFoundError,
     InvalidParameterError,
-    PostalCodeNotFoundException,
+    PostalCodeNotFoundError,
     ZonaticException,
 )
 from apps.api.schemas import (
@@ -27,8 +27,10 @@ from apps.api.schemas import (
     AreasListMeta,
     AreasListResponse,
     HierarchyNode,
-    PostalCodeResponse,
-    PostalCodeResult,
+    PostalCodeLookupResponse,
+    PostalCodePublic,
+    PostalCodeSearchMeta,
+    PostalCodeSearchResponse,
     ReverseGeocodeResponse,
 )
 
@@ -87,6 +89,42 @@ def _build_hierarchy(db: Session, area: dict) -> dict[str, HierarchyNode]:
     if key:
         hierarchy[key.value] = HierarchyNode(code=area["code"], name=area["name"])
     return hierarchy
+
+
+def _postal_code_public(db: Session, postal_code: dict) -> PostalCodePublic:
+    """Build the public representation of one postal code.
+
+    Loads every administrative area related to the postal code and maps each
+    through `AreaPublic` with the canonical level name and the same
+    `hierarchy` payload `/v1/areas` returns, so the two primitives stay
+    consistent and there is only one hierarchy implementation.
+
+    Ordering is level ASC then code ASC: the geographic reading order a
+    consumer expects, with a deterministic tie-break.
+    """
+    area_rows = db.execute(
+        text(
+            """
+            SELECT a.code, a.name, a.level, a.parent_code
+            FROM administrative_areas a
+            JOIN postal_code_areas pca ON pca.administrative_area_id = a.id
+            WHERE pca.postal_code_id = :postal_code_id
+            ORDER BY a.level ASC, a.code ASC
+            """
+        ),
+        {"postal_code_id": postal_code["id"]},
+    ).mappings().all()
+
+    areas = [
+        AreaPublic(
+            code=row["code"],
+            name=row["name"],
+            level=LEVEL_NAMES[row["level"]],
+            hierarchy=_build_hierarchy(db, dict(row)),
+        )
+        for row in area_rows
+    ]
+    return PostalCodePublic(code=postal_code["code"], areas=areas)
 
 
 @asynccontextmanager
@@ -419,86 +457,98 @@ def get_area(
 
 @v1_router.get(
     "/postal-codes/search",
-    response_model=list[PostalCodeResult],
+    response_model=PostalCodeSearchResponse,
     tags=["Postal Codes"],
-    summary="Search postal codes",
+    summary="Search postal codes by code",
 )
 def search_postal_codes(
-    q: str = Query(..., min_length=1, description="Search keyword (postal code or area name)"),
+    q: str = Query(
+        ...,
+        min_length=1,
+        description="Case-insensitive prefix keyword (postal code)",
+    ),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
     db: Session = Depends(get_db),
-) -> list[PostalCodeResult]:
-    """Search postal codes by code or associated administrative area name.
+) -> PostalCodeSearchResponse:
+    """Search Indonesian postal codes.
 
-    Returns matching postal codes with their metadata. A single postal code
-    may be associated with multiple administrative areas.
+    Returns postal codes whose `code` starts with `q`, case-insensitively, each
+    with its related administrative areas and their full hierarchy
+    (province → regency → district → village).
+
+    Matching is a prefix match, consistent with `/v1/areas`. This endpoint is
+    scoped to postal codes only: looking up an area by name belongs to
+    `/v1/areas`, so administrative-area names are not searched here.
+
+    Codes are the canonical undotted representation and never contain "."
+    separators. Import/source metadata is not exposed.
+
+    Requires a valid API key.
     """
     rows = db.execute(
         text(
             """
-            SELECT DISTINCT pc.code, pc.metadata
-            FROM postal_codes pc
-            LEFT JOIN postal_code_areas pca ON pca.postal_code_id = pc.id
-            LEFT JOIN administrative_areas a ON a.id = pca.administrative_area_id
-            WHERE pc.code ILIKE :pattern OR a.name ILIKE :pattern
-            ORDER BY pc.code ASC
+            SELECT id, code
+            FROM postal_codes
+            WHERE code ILIKE :pattern
+            ORDER BY code ASC
             LIMIT :limit
             """
         ),
-        {"pattern": f"%{q}%", "limit": limit},
+        {"pattern": f"{q}%", "limit": limit},
     ).mappings().all()
 
-    return [PostalCodeResult(code=row["code"], metadata=row["metadata"]) for row in rows]
+    data = [_postal_code_public(db, row) for row in rows]
+
+    return PostalCodeSearchResponse(
+        data=data,
+        meta=PostalCodeSearchMeta(limit=limit, count=len(data)),
+    )
 
 
 @v1_router.get(
     "/postal-codes/{code}",
-    response_model=PostalCodeResponse,
+    response_model=PostalCodeLookupResponse,
     tags=["Postal Codes"],
-    summary="Get a postal code and its areas",
+    summary="Get a postal code and its administrative areas",
 )
 def get_postal_code(
     code: str,
     db: Session = Depends(get_db),
-) -> PostalCodeResponse:
-    """Look up a postal code and all administrative areas it covers.
+) -> PostalCodeLookupResponse:
+    """Look up an Indonesian postal code.
 
-    Returns the postal code metadata and a list of associated administrative
-    areas ordered by hierarchy level. Returns 404 if the postal code does not exist.
+    Returns the postal code together with every administrative area it is
+    associated with, each carrying its full hierarchy (province → regency →
+    district → village).
+
+    `areas` is an array because `postal_code_areas` is many-to-many: a postal
+    code may relate to several administrative areas, and this API does not
+    restrict the relationship to one administrative level. The array is
+    ordered by administrative level, then by area code.
+
+    Areas are ordered topmost-first within `hierarchy` and use the canonical
+    level names. Import/source metadata, internal identifiers, and
+    `parent_code` are not exposed.
+
+    Returns 404 `POSTAL_CODE_NOT_FOUND` if the postal code does not exist.
+
+    Requires a valid API key.
     """
-    pc_row = db.execute(
+    row = db.execute(
         text(
             """
-            SELECT code, metadata
+            SELECT id, code
             FROM postal_codes
             WHERE code = :code
             """
         ),
         {"code": code},
     ).mappings().first()
-    if pc_row is None:
-        raise PostalCodeNotFoundException()
+    if row is None:
+        raise PostalCodeNotFoundError()
 
-    area_rows = db.execute(
-        text(
-            """
-            SELECT a.code, a.name, a.level, a.parent_code, a.metadata
-            FROM administrative_areas a
-            JOIN postal_code_areas pca ON pca.administrative_area_id = a.id
-            JOIN postal_codes pc ON pc.id = pca.postal_code_id
-            WHERE pc.code = :code
-            ORDER BY a.level ASC
-            """
-        ),
-        {"code": code},
-    ).mappings().all()
-
-    areas = [Area(**row) for row in area_rows]
-    return PostalCodeResponse(
-        code=pc_row["code"],
-        metadata=pc_row["metadata"],
-        areas=areas,
-    )
+    return PostalCodeLookupResponse(data=_postal_code_public(db, row))
 
 
 @v1_router.get(
@@ -513,9 +563,16 @@ def get_area_postal_codes(
 ) -> AreaPostalCodesResponse:
     """List all postal codes associated with an administrative area.
 
-    Returns the area name and all postal codes that cover it.
-    A single area may have multiple postal codes.
-    Returns 404 if the area code does not exist.
+    This is the reverse relation of the postal-code resource: it answers
+    "which postal codes cover this area", while `/v1/postal-codes/{code}`
+    answers "which areas cover this postal code". It is not a separate
+    primitive.
+
+    Returns the area code, name, and the postal codes that cover it, ordered
+    by code ascending. A single area may have multiple postal codes.
+    Returns 404 `AREA_NOT_FOUND` if the area does not exist.
+
+    Requires a valid API key.
     """
     area_row = db.execute(
         text(
@@ -533,7 +590,7 @@ def get_area_postal_codes(
     pc_rows = db.execute(
         text(
             """
-            SELECT pc.code, pc.metadata
+            SELECT pc.code
             FROM postal_codes pc
             JOIN postal_code_areas pca ON pca.postal_code_id = pc.id
             JOIN administrative_areas a ON a.id = pca.administrative_area_id
@@ -544,11 +601,10 @@ def get_area_postal_codes(
         {"code": code},
     ).mappings().all()
 
-    postal_codes = [PostalCodeResult(code=row["code"], metadata=row["metadata"]) for row in pc_rows]
     return AreaPostalCodesResponse(
         code=area_row["code"],
         name=area_row["name"],
-        postal_codes=postal_codes,
+        postal_codes=[row["code"] for row in pc_rows],
     )
 
 

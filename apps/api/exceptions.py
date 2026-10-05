@@ -42,6 +42,6 @@ class InvalidParameterError(ZonaticException):
         super().__init__(status_code=422, code="INVALID_REQUEST", message=message)
 
 
-class PostalCodeNotFoundException(ZonaticException):
+class PostalCodeNotFoundError(ZonaticException):
     def __init__(self) -> None:
         super().__init__(status_code=404, code="POSTAL_CODE_NOT_FOUND", message="Kode pos tidak ditemukan")
