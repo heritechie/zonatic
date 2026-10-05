@@ -28,6 +28,16 @@ const KEY_PREFIX_SAMPLE_LENGTH = 6;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The single error surfaced when a key cannot be permanently deleted.
+ *
+ * Deliberately covers all three rejection reasons — key used, key absent, key
+ * owned by another workspace — so the message never reveals whether a
+ * particular id exists in a workspace the caller cannot see.
+ */
+const DELETE_REJECTED_MESSAGE =
+  'API key cannot be deleted because it has already been used or does not exist in this workspace';
+
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
 
 /** Narrow an untrusted string to a known environment, or reject it. */
@@ -254,6 +264,60 @@ export async function rotateApiKey(
 
     return { row, rawKey };
   });
+}
+
+/**
+ * Permanently delete a key that has never authenticated a request.
+ *
+ * This is the only irreversible operation the console exposes on a key, so the
+ * guard lives **in the DELETE's own WHERE clause** rather than in a preceding
+ * `SELECT`. A `SELECT` → check `last_used_at` → `DELETE` sequence has a window
+ * between the read and the write in which the public API's metering path
+ * (`apps/api/dependencies.py`) can stamp `last_used_at`, and the key would then be
+ * deleted despite having been used. Here Postgres evaluates
+ * `last_used_at IS NULL` as part of the same statement that removes the row, so
+ * a key that becomes used before or during the delete simply matches no row.
+ *
+ * The predicate is therefore the complete authorization:
+ *
+ *   DELETE FROM api_keys
+ *    WHERE id = :keyId
+ *      AND tenant_id = :tenantId
+ *      AND last_used_at IS NULL
+ *    RETURNING id
+ *
+ *   - `id` addresses one logical key;
+ *   - `tenant_id` comes from the verified session via `requireWorkspace`, never
+ *     from an argument, so one workspace can never delete another's key;
+ *   - `last_used_at IS NULL` is what makes a key removable at all.
+ *
+ * Zero rows returned means one of: the key does not exist, it belongs to another
+ * workspace, or it has already been used. All three collapse to the same error
+ * on purpose — distinguishing them would let a caller probe for the existence
+ * of another workspace's keys.
+ */
+export async function deleteApiKey(tenantId: string, keyId: string): Promise<void> {
+  // Same strict-UUID pre-check as `renameApiKey`, so a malformed id is
+  // reported as the same "cannot delete" error instead of a raw Postgres cast
+  // failure that would leak driver detail.
+  if (!UUID_PATTERN.test(keyId)) {
+    throw new Error(DELETE_REJECTED_MESSAGE);
+  }
+
+  const deleted = await db
+    .delete(apiKeys)
+    .where(
+      and(
+        eq(apiKeys.id, keyId),
+        eq(apiKeys.tenantId, tenantId),
+        isNull(apiKeys.lastUsedAt)
+      )
+    )
+    .returning({ id: apiKeys.id });
+
+  if (deleted.length === 0) {
+    throw new Error(DELETE_REJECTED_MESSAGE);
+  }
 }
 
 /** Revoke a key. Scoped by tenant so one workspace cannot revoke another's. */

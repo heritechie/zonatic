@@ -4,6 +4,7 @@ import './queries/api-keys.js';
 import './mutations/create-api-key.js';
 import './mutations/rename-api-key.js';
 import './mutations/rotate-api-key.js';
+import './mutations/delete-api-key.js';
 import './mutations/rename-workspace.js';
 import { builder } from './builder.js';
 

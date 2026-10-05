@@ -66,6 +66,17 @@ export const REVOKE_API_KEY_MUTATION = `
  * seen (`lastUsedAt === null`); used keys keep the `revokeApiKey` mutation so
  * their usage history survives.
  */
+export const DELETE_API_KEY_MUTATION = `
+  mutation DeleteApiKey($keyId: ID!) {
+    deleteApiKey(keyId: $keyId)
+  }
+`;
+
+/**
+ * Rename a key. Only `name` is sent — the key id identifies the existing row,
+ * and the response carries the row back so the list can be patched in place.
+ * No field that could expose key material is selected.
+ */
 export const RENAME_API_KEY_MUTATION = `
   mutation RenameApiKey($id: ID!, $name: String!) {
     renameApiKey(id: $id, name: $name) {
@@ -135,6 +146,7 @@ export type CreatedApiKey = {
 
 export type CreateApiKeyResult = { createApiKey: CreatedApiKey };
 export type RevokeApiKeyResult = { revokeApiKey: boolean };
+export type DeleteApiKeyResult = { deleteApiKey: boolean };
 export type RenameApiKeyResult = { renameApiKey: ApiKey };
 export type RotateApiKeyResult = { rotateApiKey: CreatedApiKey };
 export const RENAME_WORKSPACE_MUTATION = `

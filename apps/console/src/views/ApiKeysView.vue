@@ -5,12 +5,16 @@ import { client } from '../graphql/client';
 import {
   API_KEYS_QUERY,
   CREATE_API_KEY_MUTATION,
+  DELETE_API_KEY_MUTATION,
+  ME_QUERY,
   RENAME_API_KEY_MUTATION,
   REVOKE_API_KEY_MUTATION,
   ROTATE_API_KEY_MUTATION,
   type ApiKey,
   type ApiKeysResult,
   type CreateApiKeyResult,
+  type DeleteApiKeyResult,
+  type Me,
   type RenameApiKeyResult,
   type RevokeApiKeyResult,
   type RotateApiKeyResult,
@@ -215,6 +219,108 @@ async function revoke(id: string, name: string) {
     }
   }
   revokingId.value = null;
+}
+
+/*
+ * Delete state.
+ *
+ * Deletion is the only irreversible action on a key, so it is the only one
+ * behind a modal rather than the `window.confirm` used by revoke. Parallel to
+ * the rotate state above: `confirmDeleteId` is the key shown in the
+ * confirmation modal, `deletingId` is the key whose mutation is in flight.
+ */
+const confirmDeleteId = ref<string | null>(null);
+const deletingId = ref<string | null>(null);
+const deleteError = ref<string | null>(null);
+const isDeleting = computed(() => deletingId.value !== null);
+
+/** Resolve the row currently in the delete confirmation modal, if any. */
+const confirmDeleteKey = computed<ApiKey | null>(
+  () => keys.value.find((k) => k.id === confirmDeleteId.value) ?? null,
+);
+
+/**
+ * Whether a key is eligible for permanent deletion.
+ *
+ * `lastUsedAt === null` is the server's own rule (`last_used_at IS NULL` in the
+ * DELETE's WHERE clause), so the button is hidden for exactly the rows the
+ * backend would refuse to delete. Used keys keep Revoke instead, which is
+ * reversible and preserves the key's history.
+ *
+ * A revoked-but-unused key offers neither action: it is already inert, and
+ * there is no history to protect, so deletion is still allowed — but the
+ * action block is only rendered for non-revoked keys, so this reads as
+ * "no action available" rather than offering to delete a dead row.
+ */
+function canDelete(key: ApiKey): boolean {
+  return !key.revokedAt && key.lastUsedAt === null;
+}
+
+/** Whether a key should offer Revoke: used, or at least previously active. */
+function canRevoke(key: ApiKey): boolean {
+  return !key.revokedAt && key.lastUsedAt !== null;
+}
+
+function openDeleteConfirm(key: ApiKey) {
+  if (!canDelete(key)) return;
+  confirmDeleteId.value = key.id;
+  deleteError.value = null;
+}
+
+function closeDeleteConfirm() {
+  if (isDeleting.value) return;
+  confirmDeleteId.value = null;
+  deleteError.value = null;
+}
+
+/**
+ * Permanently delete one never-used key.
+ *
+ * On success the row is spliced out of the local list rather than refetched,
+ * so the card disappears immediately without a flicker and without urql's
+ * cache-first exchange handing back a stale snapshot. The key is gone
+ * server-side, so nothing about the row can be re-read afterwards.
+ */
+async function submitDelete(key: ApiKey) {
+  deletingId.value = key.id;
+  deleteError.value = null;
+  try {
+    const result = await client
+      .mutation<DeleteApiKeyResult>(DELETE_API_KEY_MUTATION, { keyId: key.id })
+      .toPromise();
+
+    if (result.error) {
+      deleteError.value = result.error.message;
+      return;
+    }
+    if (!result.data?.deleteApiKey) {
+      // No error but no confirmation either. The row is still on the server, so
+      // dropping it here would make the UI claim a deletion that never
+      // happened. Stay in the modal and let the user retry.
+      deleteError.value = 'Failed to delete API key';
+      return;
+    }
+
+    keys.value = keys.value.filter((k) => k.id !== key.id);
+    confirmDeleteId.value = null;
+
+    // Deleting a key changes the overview counters (`apiKeyCount`,
+    // `activeApiKeyCount`), which OverviewView reads from `ME_QUERY`. This page
+    // only patches its own local list, so without this the normalised cache
+    // would still hold the pre-delete counts and the overview would show them
+    // until a hard reload. `network-only` forces the round trip; the result is
+    // discarded because the local list is already correct and this is only
+    // cache maintenance. Failures are ignored for the same reason — a stale
+    // counter must not turn a successful delete into a reported error.
+    void Promise.all([
+      client.query<Me>(ME_QUERY, {}, { requestPolicy: 'network-only' }).toPromise(),
+      client.query<ApiKeysResult>(API_KEYS_QUERY, {}, { requestPolicy: 'network-only' }).toPromise(),
+    ]).catch(() => undefined);
+  } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : 'Failed to delete API key';
+  } finally {
+    deletingId.value = null;
+  }
 }
 
 /**
@@ -548,15 +654,32 @@ onMounted(load);
                 <button
                   type="button"
                   class="btn btn--secondary key-card__rotate"
-                  :disabled="rotatingId === key.id || revokingId === key.id"
+                  :disabled="rotatingId === key.id || revokingId === key.id || deletingId === key.id"
                   @click="openRotateConfirm(key)"
                 >
                   Rotate
                 </button>
+                <!--
+                  Delete and Revoke are mutually exclusive. A key the public API
+                  has never authenticated can be removed outright; one that has
+                  been used keeps Revoke so its usage history survives. The
+                  `btn--danger` styling is shared so the destructive intent reads
+                  the same either way.
+                -->
                 <button
+                  v-if="canDelete(key)"
+                  type="button"
+                  class="btn btn--danger key-card__delete"
+                  :disabled="deletingId === key.id || rotatingId === key.id || revokingId === key.id"
+                  @click="openDeleteConfirm(key)"
+                >
+                  {{ deletingId === key.id ? 'Deleting…' : 'Delete' }}
+                </button>
+                <button
+                  v-else-if="canRevoke(key)"
                   type="button"
                   class="btn btn--danger key-card__revoke"
-                  :disabled="revokingId === key.id || rotatingId === key.id"
+                  :disabled="revokingId === key.id || rotatingId === key.id || deletingId === key.id"
                   @click="revoke(key.id, key.name)"
                 >
                   {{ revokingId === key.id ? 'Revoking…' : 'Revoke' }}
@@ -628,6 +751,44 @@ onMounted(load);
               @click="submitRotate(confirmRotateKey)"
             >
               {{ rotatingId ? 'Rotating…' : 'Rotate key' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!--
+      Delete confirmation modal.
+
+      Deletion is permanent and the row is unrecoverable, so the copy states
+      both facts explicitly rather than relying on the button colour.
+    -->
+    <Teleport to="body">
+      <div v-if="confirmDeleteKey" class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-key-title">
+        <div class="modal__backdrop" @click="closeDeleteConfirm" />
+        <div class="modal__card" role="document">
+          <div class="modal__head">
+            <h2 id="delete-key-title" class="modal__title">Delete API key?</h2>
+            <button type="button" class="modal__close" aria-label="Close" :disabled="isDeleting" @click="closeDeleteConfirm">
+              ×
+            </button>
+          </div>
+          <p class="delete-confirm__body">
+            This API key has never been used. It will be permanently deleted and
+            cannot be recovered.
+          </p>
+          <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
+          <div class="modal__actions">
+            <button type="button" class="btn" :disabled="isDeleting" @click="closeDeleteConfirm">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn--danger"
+              :disabled="isDeleting"
+              @click="submitDelete(confirmDeleteKey)"
+            >
+              {{ isDeleting ? 'Deleting…' : 'Delete key' }}
             </button>
           </div>
         </div>
@@ -979,7 +1140,8 @@ onMounted(load);
   font-weight: 500;
 }
 
-.key-card__revoke {
+.key-card__revoke,
+.key-card__delete {
   justify-self: end;
   padding: 0.3125rem 0.625rem;
   font-size: 0.75rem;
@@ -1153,7 +1315,8 @@ onMounted(load);
   line-height: 1.5;
 }
 
-.rotate-confirm__body {
+.rotate-confirm__body,
+.delete-confirm__body {
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--fg);
@@ -1194,6 +1357,7 @@ onMounted(load);
   /* Keep compact buttons comfortably tappable on touch screens. */
   .key-card__rotate,
   .key-card__revoke,
+  .key-card__delete,
   .reveal__actions > .btn {
     min-height: 2.25rem;
   }

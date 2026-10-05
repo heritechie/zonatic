@@ -81,7 +81,7 @@ export interface TablesState {
 
 interface CallRecord {
   table: string;
-  op: 'select' | 'insert' | 'update' | 'execute' | 'transaction';
+  op: 'select' | 'insert' | 'update' | 'delete' | 'execute' | 'transaction';
   predicate?: Predicate;
   /** Names of columns referenced via `eq` in the predicate. */
   predicateColumns?: string[];
@@ -190,7 +190,7 @@ export function makeFakeDb(): FakeDb {
 
   function makeQuery(
     tableName: keyof TablesState,
-    op: 'select' | 'insert' | 'update',
+    op: 'select' | 'insert' | 'update' | 'delete',
   ): any {
     let predicate: Predicate | undefined;
     let limit: number | undefined;
@@ -342,6 +342,25 @@ export function makeFakeDb(): FakeDb {
           : matched.map((r) => projectRow(r, returningCols as Record<string, unknown>));
       }
 
+      /*
+       * DELETE path.
+       *
+       * Mirrors the real semantics the service depends on: rows are removed only
+       * when they match the statement's own predicate. A DELETE whose WHERE
+       * clause forgot `last_used_at IS NULL` would therefore remove a used key
+       * here just as it would in Postgres, which is what makes the race test
+       * meaningful against this fake.
+       */
+      if (op === 'delete') {
+        const matched = tables[tableName].filter((r) => evalPredicate(predicate, r));
+        const kept = tables[tableName].filter((r) => !evalPredicate(predicate, r));
+        tables[tableName] = kept;
+        record.affected = matched.length;
+        return returningCols === true || returningCols === undefined
+          ? matched.map((r) => ({ ...r }))
+          : matched.map((r) => projectRow(r, returningCols as Record<string, unknown>));
+      }
+
       // SELECT path.
       let rows: Record<string, unknown>[];
       if (joinedTables && joinedTables.length > 1) {
@@ -422,6 +441,7 @@ export function makeFakeDb(): FakeDb {
     },
     insert: (table: unknown) => makeQuery(tableNameFromRef(table) as keyof TablesState, 'insert'),
     update: (table: unknown) => makeQuery(tableNameFromRef(table) as keyof TablesState, 'update'),
+    delete: (table: unknown) => makeQuery(tableNameFromRef(table) as keyof TablesState, 'delete'),
   };
 
   // Patch select() so that returning() actually triggers resolution. The naive
