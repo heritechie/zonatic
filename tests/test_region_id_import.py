@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 
-from app.database import SessionLocal
-from app.importers.region_id import (
+from apps.api.database import SessionLocal
+from apps.api.importers.region_id import (
     RegionIdImportError,
     _level_rows,
     _validate_rows,

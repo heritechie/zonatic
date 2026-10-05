@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import Connection, text
 
-from app.importers.normalize import ImportOptions, StagedFeature
+from apps.api.importers.normalize import ImportOptions, StagedFeature
 
 
 def create_run(connection: Connection, run_id: UUID, options: ImportOptions) -> None:

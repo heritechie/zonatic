@@ -1,11 +1,12 @@
+import uuid
 import hashlib
 
 from fastapi import Depends, Header
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.exceptions import ApiKeyRevokedException, InvalidApiKeyException
+from apps.api.database import get_db
+from apps.api.exceptions import ApiKeyRevokedException, InvalidApiKeyException
 
 TEST_API_KEY = "zn_test_devkey1234"
 TEST_API_KEY_HASH = hashlib.sha256(TEST_API_KEY.encode()).hexdigest()
@@ -18,7 +19,7 @@ def _hash_key(key: str) -> str:
 async def get_current_tenant(
     authorization: str | None = Header(None),
     db: Session = Depends(get_db),
-) -> int:
+) -> uuid.UUID:
     if not authorization or not authorization.startswith("Bearer "):
         raise InvalidApiKeyException()
 
@@ -42,4 +43,5 @@ async def get_current_tenant(
     if row["revoked_at"] is not None:
         raise ApiKeyRevokedException()
 
-    return row["tenant_id"]
+    import uuid
+    return row["tenant_id"] if isinstance(row["tenant_id"], uuid.UUID) else uuid.UUID(str(row["tenant_id"]))

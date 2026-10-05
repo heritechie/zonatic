@@ -1,36 +1,16 @@
 services:
-  db:
-    image: postgis/postgis:16-3.4
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-zonatic}
-      POSTGRES_USER: ${POSTGRES_USER:-zonatic}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zonatic}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-
   api:
     build:
       context: .
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://zonatic:zonatic@db:5432/zonatic}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set to a Supabase (or compatible) PostgreSQL connection string}
       APP_ENV: ${APP_ENV:-development}
     expose:
       - "8000"
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
-      - ./app:/app/app:ro
-      - ./examples:/app/examples:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - ./apps/api:/srv/apps/api:ro
+      - ./examples:/srv/examples:ro
+    command: uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
 
   console:
     build:
@@ -39,7 +19,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_GRAPHQL_URL: http://localhost:8001/graphql
+      VITE_GRAPHQL_URL: ${VITE_GRAPHQL_URL:-http://localhost:8001/graphql}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?VITE_SUPABASE_URL must be set to the Supabase project URL}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?VITE_SUPABASE_ANON_KEY must be set to the Supabase anon key}
+      VITE_SITE_URL: ${VITE_SITE_URL:-https://www.zonatic.id}
     volumes:
       - ./apps/console/src:/app/apps/console/src
     depends_on:
@@ -52,13 +35,12 @@ services:
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://zonatic:zonatic@db:5432/zonatic}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set to a Supabase (or compatible) PostgreSQL connection string}
       PORT: "8000"
       NODE_ENV: development
-      CORS_ORIGINS: http://localhost:5173,http://localhost:80
-    depends_on:
-      db:
-        condition: service_healthy
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:80}
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL must be set to the Supabase project URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY must be set to the Supabase anon key}
     volumes:
       - ./apps/console-api/src:/app/apps/console-api/src
 
@@ -71,6 +53,3 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./static:/srv/static:ro
-
-volumes:
-  postgres_data:

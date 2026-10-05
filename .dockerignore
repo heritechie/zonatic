@@ -1,5 +1,17 @@
-node_modules
-dist
+# Patterns must use **/ to match at any depth. A bare "node_modules" only
+# matches the repository root, which would let pnpm's per-package
+# apps/*/node_modules into the build context.
+**/node_modules
+**/dist
+**/.venv
 .git
-.env
+.gitignore
+
+# Keep every .env variant out of the build context so development credentials
+# can never be baked into an image. apps/console/.env.local holds a real
+# Supabase project URL and publishable anon key.
+**/.env
+**/.env.*
+!.env.example
+
 *.md

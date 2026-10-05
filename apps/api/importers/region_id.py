@@ -5,7 +5,7 @@ from a release directory, validates the complete dataset, and upserts into
 administrative_areas in a single transaction.
 
 Usage:
-    python -m app.importers.cli_region_id import --dir /path/to/region-id-1.0.1 --version 1.0.1
+    python -m apps.api.importers.cli_region_id import --dir /path/to/region-id-1.0.1 --version 1.0.1
 """
 
 import csv
@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from sqlalchemy import Connection, text
 
-from app.database import engine
+from apps.api.database import engine
 
 LEVEL_FILES = {
     1: "provinces.csv",

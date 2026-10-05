@@ -4,10 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.database import SessionLocal
-from app.dependencies import TEST_API_KEY
-from app.main import app
-from tests.conftest import _apply_migration, _seed_test_api_key
+from apps.api.database import SessionLocal
+from apps.api.dependencies import TEST_API_KEY
+from apps.api.main import app
+from tests.conftest import _apply_migration, _seed_test_api_key, DEV_KEY_HASH
 
 client = TestClient(app)
 
@@ -18,7 +18,11 @@ INSERT INTO administrative_areas (code, name, level, parent_code, metadata) VALU
     ('317101', 'Tanah Abang', 3, '3171', '{"source":"test"}'),
     ('3171011001', 'Gelora', 4, '317101', '{"source":"test"}'),
     ('3171011002', 'Karet', 4, '317101', '{"source":"test"}'),
-    ('3172', 'Jakarta Selatan', 2, '31', '{"source":"test"}')
+    ('3172', 'Jakarta Selatan', 2, '31', '{"source":"test"}'),
+    ('32', 'Jawa Barat', 1, NULL, '{"source":"test"}'),
+    ('3273', 'Kota Bandung', 2, '32', '{"source":"test"}'),
+    ('327301', 'Bandung Wetan', 3, '3273', '{"source":"test"}'),
+    ('3273011001', 'Cihapit', 4, '327301', '{"source":"test"}')
 ON CONFLICT (code) DO NOTHING
 """
 
@@ -79,49 +83,77 @@ class TestLookupByLevel:
 
 
 # ---------------------------------------------------------------------------
-# Breadcrumb
+# Hierarchy
 # ---------------------------------------------------------------------------
 
 
-class TestBreadcrumb:
+class TestHierarchy:
+    """`hierarchy` is a dict (province/regency/district/village) keyed by level
+    name, containing the matching area itself and all of its ancestors.
+    """
+
     def test_province_has_self(self):
         resp = client.get("/v1/areas/31", headers=_auth())
-        bc = resp.json()["data"]["breadcrumb"]
-        assert len(bc) == 1
-        assert bc[0]["code"] == "31"
-        assert bc[0]["level"] == "province"
+        body = resp.json()["data"]
+        h = body["hierarchy"]
+        assert set(h.keys()) == {"province"}
+        assert h["province"]["code"] == "31"
+        assert h["province"]["name"] == "DKI Jakarta"
+        assert body["level"] == "province"
 
     def test_regency_has_province_then_self(self):
         resp = client.get("/v1/areas/3171", headers=_auth())
-        bc = resp.json()["data"]["breadcrumb"]
-        assert len(bc) == 2
-        assert bc[0]["code"] == "31"
-        assert bc[0]["level"] == "province"
-        assert bc[1]["code"] == "3171"
-        assert bc[1]["level"] == "regency"
+        body = resp.json()["data"]
+        h = body["hierarchy"]
+        assert set(h.keys()) == {"province", "regency"}
+        assert h["province"]["code"] == "31"
+        assert h["regency"]["code"] == "3171"
+        assert body["level"] == "regency"
 
     def test_district_three_levels(self):
         resp = client.get("/v1/areas/317101", headers=_auth())
-        bc = resp.json()["data"]["breadcrumb"]
-        assert len(bc) == 3
-        assert [b["code"] for b in bc] == ["31", "3171", "317101"]
-        assert [b["level"] for b in bc] == ["province", "regency", "district"]
+        body = resp.json()["data"]
+        h = body["hierarchy"]
+        assert set(h.keys()) == {"province", "regency", "district"}
+        assert [h[k]["code"] for k in ("province", "regency", "district")] == [
+            "31",
+            "3171",
+            "317101",
+        ]
+        assert body["level"] == "district"
 
     def test_village_four_levels(self):
         resp = client.get("/v1/areas/3171011001", headers=_auth())
-        bc = resp.json()["data"]["breadcrumb"]
-        assert len(bc) == 4
-        assert [b["code"] for b in bc] == ["31", "3171", "317101", "3171011001"]
-        assert [b["level"] for b in bc] == ["province", "regency", "district", "village"]
+        body = resp.json()["data"]
+        h = body["hierarchy"]
+        assert set(h.keys()) == {"province", "regency", "district", "village"}
+        assert [h[k]["code"] for k in ("province", "regency", "district", "village")] == [
+            "31",
+            "3171",
+            "317101",
+            "3171011001",
+        ]
+        assert body["level"] == "village"
 
-    def test_breadcrumb_ordering_parent_child(self):
-        resp = client.get("/v1/areas/3171011001", headers=_auth())
-        bc = resp.json()["data"]["breadcrumb"]
-        for i in range(1, len(bc)):
-            item = bc[i]
-            parent = bc[i - 1]
-            area = _get_area(item["code"])
-            assert area["parent_code"] == parent["code"]
+    def test_no_null_hierarchy_levels(self):
+        # Each hierarchy key must carry a concrete code/name pair; empty
+        # entries must not be emitted.
+        resp = client.get("/v1/areas/317101", headers=_auth())
+        h = resp.json()["data"]["hierarchy"]
+        for key, node in h.items():
+            assert node["code"], f"empty code for {key}"
+            assert node["name"], f"empty name for {key}"
+
+    def test_hierarchy_includes_self_for_each_level(self):
+        for code, level in [
+            ("31", "province"),
+            ("3171", "regency"),
+            ("317101", "district"),
+            ("3171011001", "village"),
+        ]:
+            resp = client.get(f"/v1/areas/{code}", headers=_auth())
+            h = resp.json()["data"]["hierarchy"]
+            assert h[level]["code"] == code
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +177,7 @@ class TestCanonicalCode:
 
 
 # ---------------------------------------------------------------------------
-# 404 AREA_NOT_FOUND
+# Not found
 # ---------------------------------------------------------------------------
 
 
@@ -157,8 +189,11 @@ class TestNotFound:
         assert body["error"]["code"] == "AREA_NOT_FOUND"
 
     def test_empty_string_code(self):
+        # `/v1/areas/` normalises to `/v1/areas`, which now requires `q`, so the
+        # rejection is a validation error rather than a route miss.
         resp = client.get("/v1/areas/", headers=_auth())
-        assert resp.status_code in (404, 405)
+        assert resp.status_code == 422
+        assert resp.json()["error"]["code"] == "INVALID_REQUEST"
 
     def test_non_numeric_code(self):
         resp = client.get("/v1/areas/abcdef", headers=_auth())
@@ -189,12 +224,9 @@ class TestAuthentication:
 
     def test_revoked_api_key(self):
         with SessionLocal() as db:
-            h = db.execute(
-                text("SELECT key_hash FROM api_keys LIMIT 1")
-            ).scalar_one()
             db.execute(
                 text("UPDATE api_keys SET revoked_at = now() WHERE key_hash = :h"),
-                {"h": h},
+                {"h": DEV_KEY_HASH},
             )
             db.commit()
         try:
@@ -205,7 +237,7 @@ class TestAuthentication:
             with SessionLocal() as db:
                 db.execute(
                     text("UPDATE api_keys SET revoked_at = NULL WHERE key_hash = :h"),
-                    {"h": h},
+                    {"h": DEV_KEY_HASH},
                 )
                 db.commit()
 
@@ -226,23 +258,21 @@ class TestResponseStructure:
         assert "code" in data
         assert "name" in data
         assert "level" in data
-        assert "breadcrumb" in data
+        assert "hierarchy" in data
 
-    def test_breadcrumb_items_have_required_fields(self):
+    def test_hierarchy_items_have_required_fields(self):
         resp = client.get("/v1/areas/3171011001", headers=_auth())
-        for item in resp.json()["data"]["breadcrumb"]:
+        h = resp.json()["data"]["hierarchy"]
+        for level, item in h.items():
             assert "code" in item
             assert "name" in item
-            assert "level" in item
 
-    def test_level_is_string(self):
-        resp = client.get("/v1/areas/31", headers=_auth())
-        assert isinstance(resp.json()["data"]["level"], str)
-
-    def test_breadcrumb_level_is_string(self):
+    def test_hierarchy_level_is_string(self):
         resp = client.get("/v1/areas/3171011001", headers=_auth())
-        for item in resp.json()["data"]["breadcrumb"]:
-            assert isinstance(item["level"], str)
+        h = resp.json()["data"]["hierarchy"]
+        for key, node in h.items():
+            assert isinstance(node["code"], str)
+            assert isinstance(node["name"], str)
 
     def test_error_response_structure(self):
         resp = client.get("/v1/areas/999999", headers=_auth())

@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.database import SessionLocal
-from app.main import app
+from apps.api.database import SessionLocal
+from apps.api.main import app
 
 client = TestClient(app)
 

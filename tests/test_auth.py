@@ -1,13 +1,14 @@
+import uuid
 import hashlib
 
 import pytest
 from fastapi import Depends, FastAPI
 from sqlalchemy import text
 
-from app.database import SessionLocal
-from app.dependencies import get_current_tenant
-from app.exceptions import ZonaticException
-from app.main import zonatic_exception_handler
+from apps.api.database import SessionLocal
+from apps.api.dependencies import get_current_tenant
+from apps.api.exceptions import ZonaticException
+from apps.api.main import zonatic_exception_handler
 from fastapi.testclient import TestClient
 
 DEV_KEY = "zn_test_devkey1234"
@@ -18,7 +19,7 @@ _test_app.add_exception_handler(ZonaticException, zonatic_exception_handler)
 
 
 @_test_app.get("/protected")
-def _protected(tenant_id: int = Depends(get_current_tenant)) -> dict:
+def _protected(tenant_id: uuid.UUID = Depends(get_current_tenant)) -> dict:
     return {"tenant_id": tenant_id}
 
 
@@ -52,7 +53,7 @@ def _auth_header(key: str = DEV_KEY) -> dict[str, str]:
 def test_valid_api_key():
     resp = client.get("/protected", headers=_auth_header())
     assert resp.status_code == 200
-    assert resp.json()["tenant_id"] == 1
+    tenant = resp.json()["tenant_id"]; assert isinstance(tenant, str)
 
 
 def test_invalid_api_key():

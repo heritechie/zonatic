@@ -1,7 +1,7 @@
 """CLI for importing region-id CSV data.
 
 Usage:
-    python -m app.importers.cli_region_id import \\
+    python -m apps.api.importers.cli_region_id import \\
         --dir /path/to/region-id-1.0.1 \\
         --version 1.0.1 \\
         --dry-run
@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-from app.importers.region_id import RegionIdImportError, import_region_id
+from apps.api.importers.region_id import RegionIdImportError, import_region_id
 
 
 def build_parser() -> argparse.ArgumentParser:

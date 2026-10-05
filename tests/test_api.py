@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.database import SessionLocal
-from app.main import LEVEL_KEYS, app
+from apps.api.database import SessionLocal
+from apps.api.main import LEVEL_KEYS, app
 
 client = TestClient(app)
 
@@ -28,13 +28,13 @@ def _reset_db():
                 ('31', 'DKI Jakarta', 1, NULL,
                  ST_Multi(ST_GeomFromText('POLYGON((106.70 -6.40, 106.98 -6.40, 106.98 -6.10, 106.70 -6.10, 106.70 -6.40))', 4326)),
                  '{"source":"test","type":"province"}'),
-                ('31.71', 'Kota Administrasi Jakarta Pusat', 2, '31',
+                ('3171', 'Kota Administrasi Jakarta Pusat', 2, '31',
                  ST_Multi(ST_GeomFromText('POLYGON((106.78 -6.25, 106.90 -6.25, 106.90 -6.12, 106.78 -6.12, 106.78 -6.25))', 4326)),
                  '{"source":"test","type":"city"}'),
-                ('31.71.01', 'Kecamatan Tanah Abang', 3, '31.71',
+                ('317101', 'Kecamatan Tanah Abang', 3, '3171',
                  ST_Multi(ST_GeomFromText('POLYGON((106.79 -6.22, 106.84 -6.22, 106.84 -6.17, 106.79 -6.17, 106.79 -6.22))', 4326)),
                  '{"source":"test","type":"district"}'),
-                ('31.71.01.1001', 'Kelurahan Gelora', 4, '31.71.01',
+                ('3171011001', 'Kelurahan Gelora', 4, '317101',
                  ST_Multi(ST_GeomFromText('POLYGON((106.79 -6.20, 106.82 -6.20, 106.82 -6.18, 106.79 -6.18, 106.79 -6.20))', 4326)),
                  '{"source":"test","type":"urban_village"}')
                 """
@@ -55,7 +55,7 @@ def _reset_db():
                 """
                 INSERT INTO postal_code_areas (postal_code_id, administrative_area_id)
                 SELECT pc.id, aa.id FROM postal_codes pc
-                JOIN administrative_areas aa ON aa.code = '31.71.01.1001'
+                JOIN administrative_areas aa ON aa.code = '3171011001'
                 WHERE pc.code = '10270'
                 """
             )
@@ -65,7 +65,7 @@ def _reset_db():
                 """
                 INSERT INTO postal_code_areas (postal_code_id, administrative_area_id)
                 SELECT pc.id, aa.id FROM postal_codes pc
-                JOIN administrative_areas aa ON aa.code = '31.71.01'
+                JOIN administrative_areas aa ON aa.code = '317101'
                 WHERE pc.code = '10210'
                 """
             )
@@ -92,7 +92,7 @@ def test_autocomplete_basic():
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
-    assert data["results"][0]["code"] == "31.71.01"
+    assert data["results"][0]["code"] == "317101"
     assert data["results"][0]["name"] == "Kecamatan Tanah Abang"
     assert data["results"][0]["level"] == 3
     assert "DKI Jakarta" in data["results"][0]["breadcrumb"]
@@ -107,7 +107,7 @@ def test_autocomplete_breadcrumb_hierarchy():
     data = resp.json()
     assert len(data["results"]) == 1
     result = data["results"][0]
-    assert result["code"] == "31.71.01.1001"
+    assert result["code"] == "3171011001"
     assert result["level"] == 4
     assert result["breadcrumb"] == "DKI Jakarta > Kota Administrasi Jakarta Pusat > Kecamatan Tanah Abang > Kelurahan Gelora"
 
@@ -128,11 +128,11 @@ def test_autocomplete_filter_levels():
 
 def test_autocomplete_filter_parent_code():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "31.71"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "3171"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
-    assert data["results"][0]["code"] == "31.71.01"
+    assert data["results"][0]["code"] == "317101"
 
     resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "99.99"})
     assert resp.status_code == 200
@@ -174,7 +174,7 @@ def test_autocomplete_case_insensitive():
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
-    assert data["results"][0]["code"] == "31.71.01"
+    assert data["results"][0]["code"] == "317101"
 
 
 def test_postal_code_lookup():
@@ -184,7 +184,7 @@ def test_postal_code_lookup():
     data = resp.json()
     assert data["code"] == "10270"
     assert len(data["areas"]) == 1
-    assert data["areas"][0]["code"] == "31.71.01.1001"
+    assert data["areas"][0]["code"] == "3171011001"
     assert data["areas"][0]["name"] == "Kelurahan Gelora"
 
 
@@ -231,10 +231,10 @@ def test_postal_code_search_limit():
 
 def test_area_postal_codes():
     _setup_fixtures()
-    resp = client.get("/v1/areas/31.71.01.1001/postal-codes", headers=_auth_header())
+    resp = client.get("/v1/areas/3171011001/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
-    assert data["code"] == "31.71.01.1001"
+    assert data["code"] == "3171011001"
     assert data["name"] == "Kelurahan Gelora"
     assert len(data["postal_codes"]) == 1
     assert data["postal_codes"][0]["code"] == "10270"
@@ -242,10 +242,10 @@ def test_area_postal_codes():
 
 def test_area_postal_codes_parent():
     _setup_fixtures()
-    resp = client.get("/v1/areas/31.71.01/postal-codes", headers=_auth_header())
+    resp = client.get("/v1/areas/317101/postal-codes", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
-    assert data["code"] == "31.71.01"
+    assert data["code"] == "317101"
     assert len(data["postal_codes"]) == 1
     assert data["postal_codes"][0]["code"] == "10210"
 

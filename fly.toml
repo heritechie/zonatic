@@ -1,67 +1,35 @@
-# Fly.io configuration for `zonatic-console`.
+# Fly.io configuration for Zonatic API
 #
-# Temporary hosting while GCP billing/payment is unavailable. The runtime
-# contract is the same `apps/console/Dockerfile.prod` already used for Cloud
-# Run, so moving back to Cloud Run later is a swap of hosting provider, not a
-# code change.
-#
-# No secret material is stored in this file.
-#
-# [build.args] below holds only non-secret Vite literals that Vite inlines
-# into the JS bundle at build time: VITE_GRAPHQL_URL, VITE_CONSOLE_URL,
-# VITE_SITE_URL. They are committed alongside this file.
-#
-# VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are NOT set here. Fly does
-# not expose runtime secrets to builds, so the `$NAME` placeholder syntax
-# has no effect and would be inlined as a literal string into the bundle
-# (causing supabase-js to throw at runtime). Those two values are passed
-# to `fly deploy` via `--build-arg` at deploy time, sourced out-of-band
-# (local .env, CI secrets, etc.).
-#
-# Runtime secrets for the console-api process (DATABASE_URL, SUPABASE_URL,
-# SUPABASE_ANON_KEY, CORS_ORIGINS) are stored with `fly secrets` and
-# injected into the running machine. They are never read by the build.
+# Public API hostname: api.zonatic.id
+# Fly.io region: Singapore (sin)
+# Internal port: 8000
+# HTTPS enabled
 
-app = "zonatic-console"
+app = "zonatic-api"
 primary_region = "sin"
 
-# Fly terminates TLS at the edge and forwards plain HTTP to internal_port.
-# The Caddy process inside the container listens on :8080 (its PORT env),
-# serves the static SPA, and reverse-proxies /graphql to the loopback
-# console-api on :8000. Port 8000 is intentionally NOT published.
-internal_port = 8080
-
+# Build configuration
 [build]
-  dockerfile = "apps/console/Dockerfile.prod"
+  dockerfile = "apps/api/Dockerfile"
 
-# Vite inlines VITE_* variables into the JS bundle at build time. Only
-# non-secret literals live here. SUPABASE_URL and SUPABASE_ANON_KEY are
-# injected at deploy time via `--build-arg`; they are never substituted
-# from `fly secrets` (Fly does not expose secrets to builds).
+# Build arguments (only non-secret build-time values)
 [build.args]
-  VITE_GRAPHQL_URL = "/graphql"
-  VITE_CONSOLE_URL = "https://console.zonatic.id"
-  VITE_SITE_URL = "https://zonatic.id"
+  # No secret material should be stored in this file.
 
+# Runtime environment variables
 [env]
-  # Non-secret runtime values. NODE_ENV is also baked into the runtime image
-  # (Dockerfile.prod line 76); declaring it here is documentation, not a
-  # behavioural change. CONSOLE_API_PORT is the *internal* port used by the
-  # Caddyfile reverse-proxy and by `node /srv/api/dist/server.js`; the image
-  # already defaults it to 8000.
-  NODE_ENV = "production"
-  CONSOLE_API_PORT = "8000"
+  APP_ENV = "production"
 
+# HTTP service configuration
 [[services]]
   protocol = "tcp"
-  internal_port = 8080
+  internal_port = 8000
+  processes = ["api"]
   auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
 
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 100
-    soft_limit = 80
-
+  # HTTP service configuration
   [[services.ports]]
     handlers = ["http"]
     port = 80
@@ -71,16 +39,24 @@ internal_port = 8080
     handlers = ["tls", "http"]
     port = 443
 
-  # TCP probe verifies Caddy is listening. Path "/" answers 200 from the SPA
-  # fallback once Caddy is up, sidestepping the brief window where Node
-  # console-api is still binding to 8000 (/graphql could 502 on first hit).
-  [[services.tcp_checks]]
-    grace_period = "10s"
-    interval = "15s"
-    timeout = "2s"
-
+  # HTTP health checks
   [[services.http_checks]]
-    path = "/"
+    path = "/health"
     grace_period = "10s"
     interval = "30s"
     timeout = "5s"
+    method = "get"
+    restart_limit = 3
+
+  # TCP health checks (backup)
+  [[services.tcp_checks]]
+    grace_period = "10s"
+    interval = "15s"
+    timeout = "5s"
+
+  # Process configuration
+  [vm]
+  memory_mb = 512
+
+  [processes]
+    api = "uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --workers 2"

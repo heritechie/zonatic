@@ -28,14 +28,18 @@ class InvalidRequestError(ZonaticException):
         super().__init__(status_code=400, code="INVALID_REQUEST", message=message)
 
 
-class InvalidLevelError(ZonaticException):
-    def __init__(self) -> None:
-        super().__init__(status_code=400, code="INVALID_LEVEL", message="Level tidak valid. Gunakan: province, regency, district, village.")
+class InvalidParameterError(ZonaticException):
+    """Schema-level request validation failure.
 
+    Raised by the FastAPI `RequestValidationError` handler so that rejected
+    query/path parameters keep the public `{"error": {...}}` envelope instead
+    of FastAPI's default `{"detail": [...]}` body. The status code stays 422 so
+    clients can still distinguish "malformed request" from "valid request that
+    could not be satisfied".
+    """
 
-class InvalidLimitError(ZonaticException):
-    def __init__(self) -> None:
-        super().__init__(status_code=400, code="INVALID_LIMIT", message="Limit tidak valid. Gunakan angka 1-100.")
+    def __init__(self, message: str = "Parameter permintaan tidak valid.") -> None:
+        super().__init__(status_code=422, code="INVALID_REQUEST", message=message)
 
 
 class PostalCodeNotFoundException(ZonaticException):

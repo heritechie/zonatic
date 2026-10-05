@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://zonatic:zonatic@db:5432/zonatic"
+    database_url: str = ""
     app_env: str = "development"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
