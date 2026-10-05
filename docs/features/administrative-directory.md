@@ -6,7 +6,7 @@ Administrative Directory API menyediakan master data wilayah administratif Indon
 
 - mengambil administrative area berdasarkan canonical code;
 - mencari administrative area berdasarkan nama;
-- mendapatkan hierarchy/breadcrumb suatu area.
+- mendapatkan hierarchy suatu area.
 
 Data administrative berasal dari `region-id`.
 
@@ -18,7 +18,7 @@ Zonatic tidak mengubah format canonical administrative code.
 
 - administrative area lookup;
 - administrative area search;
-- hierarchy/breadcrumb;
+- hierarchy;
 - API key authentication;
 - input validation;
 - consistent error response.
@@ -124,28 +124,12 @@ HTTP `200 OK`.
     "code": "3273011001",
     "name": "Example Village",
     "level": "village",
-    "breadcrumb": [
-      {
-        "code": "32",
-        "name": "Jawa Barat",
-        "level": "province"
-      },
-      {
-        "code": "3273",
-        "name": "Example Regency",
-        "level": "regency"
-      },
-      {
-        "code": "327301",
-        "name": "Example District",
-        "level": "district"
-      },
-      {
-        "code": "3273011001",
-        "name": "Example Village",
-        "level": "village"
-      }
-    ]
+    "hierarchy": {
+      "province": { "code": "32", "name": "Jawa Barat" },
+      "regency": { "code": "3273", "name": "Example Regency" },
+      "district": { "code": "327301", "name": "Example District" },
+      "village": { "code": "3273011001", "name": "Example Village" }
+    }
   }
 }
 ```
@@ -155,8 +139,9 @@ HTTP `200 OK`.
 - `code` harus exact match.
 - Response harus menggunakan canonical code.
 - `level` harus salah satu dari `province`, `regency`, `district`, atau `village`.
-- Breadcrumb diurutkan dari province menuju area yang diminta.
-- Area pada breadcrumb harus mengikuti parent hierarchy dari source data.
+- `hierarchy` diurutkan dari province menuju area yang diminta.
+- Area pada `hierarchy` harus mengikuti parent hierarchy dari source data.
+- `hierarchy` juga memuat area yang diminta sendiri pada key level-nya.
 
 ### Not Found
 
@@ -173,12 +158,74 @@ HTTP `404`.
 }
 ```
 
+## 6.1 Endpoint: Administrative Hierarchy
+
+Navigasi parent → child tersedia sebagai primitive terpisah dari lookup satu area.
+
+### Request
+
+```http
+GET /v1/areas/provinces
+GET /v1/areas/{code}/children
+GET /v1/areas/provinces/{province_code}/regencies
+GET /v1/areas/provinces/{province_code}/regencies/{regency_code}/districts
+GET /v1/areas/provinces/{province_code}/regencies/{regency_code}/districts/{district_code}/villages
+```
+
+`GET /v1/areas/provinces` adalah root hierarchy. `GET /v1/areas/{code}/children`
+adalah primitive generik untuk mengisi selector province/regency/district/village.
+Tiga route terakhir adalah route convenience dengan level dan parent yang sudah
+divalidasi oleh path-nya.
+
+### Example
+
+```http
+GET /v1/areas/provinces/32/regencies/3273/districts
+Authorization: Bearer <api-key>
+```
+
+### Success Response
+
+HTTP `200 OK`. Semua route hierarchy memakai response yang sama dengan search.
+
+```json
+{
+  "data": [
+    {
+      "code": "327301",
+      "name": "Example District",
+      "level": "district",
+      "hierarchy": {
+        "province": { "code": "32", "name": "Jawa Barat" },
+        "regency": { "code": "3273", "name": "Example Regency" },
+        "district": { "code": "327301", "name": "Example District" }
+      }
+    }
+  ],
+  "meta": {
+    "limit": 20,
+    "count": 1
+  }
+}
+```
+
+### Behavior
+
+- Hanya direct children yang dikembalikan, bukan seluruh subtree.
+- `children` untuk `village` menghasilkan `200` dengan `data` kosong, bukan `404`.
+- Convenience route memvalidasi bahwa setiap code pada path benar-benar memiliki
+  hubungan parent-child; code yang valid tetapi berada di branch lain menghasilkan
+  `404 AREA_NOT_FOUND`.
+- Ordering adalah canonical code ascending.
+- `limit` default `20`, range `1–100`. Belum ada offset atau page pagination.
+- Seluruh route hierarchy membutuhkan API key, sama seperti route `/v1` lainnya.
+
 ## 7. Endpoint: Search Areas
 
 ### Request
 
 ```http
-GET /v1/areas/search
+GET /v1/areas?q=...
 ```
 
 Required query parameter:
@@ -198,7 +245,7 @@ limit
 Example:
 
 ```http
-GET /v1/areas/search?q=tanah&limit=10
+GET /v1/areas?q=tanah&limit=10
 Authorization: Bearer <api-key>
 ```
 
@@ -228,7 +275,7 @@ Jika `level` tidak diberikan, pencarian dilakukan pada seluruh administrative le
 Example:
 
 ```http
-GET /v1/areas/search?q=bandung
+GET /v1/areas?q=bandung
 ```
 
 Hasil dapat mencakup:
@@ -244,7 +291,7 @@ village
 Example:
 
 ```http
-GET /v1/areas/search?q=bandung&level=regency
+GET /v1/areas?q=bandung&level=regency
 ```
 
 Hasil hanya boleh berisi:
@@ -269,7 +316,7 @@ village
 Example:
 
 ```http
-GET /v1/areas/search?q=tanah&parent_code=3171
+GET /v1/areas?q=tanah&parent_code=3171
 ```
 
 Artinya mencari area yang:
@@ -295,23 +342,11 @@ Example:
       "code": "317101",
       "name": "Tanah Abang",
       "level": "district",
-      "breadcrumb": [
-        {
-          "code": "31",
-          "name": "DKI Jakarta",
-          "level": "province"
-        },
-        {
-          "code": "3171",
-          "name": "Jakarta Pusat",
-          "level": "regency"
-        },
-        {
-          "code": "317101",
-          "name": "Tanah Abang",
-          "level": "district"
-        }
-      ]
+      "hierarchy": {
+        "province": { "code": "31", "name": "DKI Jakarta" },
+        "regency": { "code": "3171", "name": "Jakarta Pusat" },
+        "district": { "code": "317101", "name": "Tanah Abang" }
+      }
     }
   ],
   "meta": {
@@ -348,7 +383,7 @@ Search kosong tidak menggunakan `404`.
 Invalid:
 
 ```http
-GET /v1/areas/search
+GET /v1/areas
 ```
 
 Response:
@@ -360,7 +395,7 @@ Response:
 Empty query juga dianggap invalid:
 
 ```http
-GET /v1/areas/search?q=
+GET /v1/areas?q=
 ```
 
 ### `level`
@@ -478,9 +513,9 @@ Setiap area harus memiliki parent yang valid kecuali `province`.
 - [ ] Response memiliki `code`.
 - [ ] Response memiliki `name`.
 - [ ] Response memiliki `level`.
-- [ ] Response memiliki breadcrumb.
-- [ ] Breadcrumb dimulai dari province.
-- [ ] Breadcrumb mengikuti parent hierarchy.
+- [ ] Response memiliki `hierarchy`.
+- [ ] `hierarchy` dimulai dari province.
+- [ ] `hierarchy` mengikuti parent hierarchy.
 - [ ] Unknown code menghasilkan `404 AREA_NOT_FOUND`.
 - [ ] Canonical code tidak mengalami transformasi.
 
@@ -499,7 +534,7 @@ Setiap area harus memiliki parent yang valid kecuali `province`.
 - [ ] Result memiliki `code`.
 - [ ] Result memiliki `name`.
 - [ ] Result memiliki `level`.
-- [ ] Result memiliki breadcrumb.
+- [ ] Result memiliki `hierarchy`.
 
 ### Authentication
 
@@ -551,7 +586,7 @@ Meng-cover:
 
 ```text
 GET /v1/areas/{code}
-GET /v1/areas/search
+GET /v1/areas?q=...
 ```
 
 termasuk success, validation, authentication, dan error cases.
@@ -562,7 +597,7 @@ Administrative Directory API dianggap selesai apabila:
 
 - [ ] API implementation selesai.
 - [ ] `GET /v1/areas/{code}` tersedia.
-- [ ] `GET /v1/areas/search` tersedia.
+- [ ] `GET /v1/areas?q=...` tersedia.
 - [ ] `region-id` berhasil diintegrasikan.
 - [ ] Canonical code dipertahankan.
 - [ ] Hierarchy dapat direkonstruksi.

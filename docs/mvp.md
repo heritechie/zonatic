@@ -46,7 +46,7 @@ Endpoint:
 
 ```http
 GET /v1/areas/{code}
-GET /v1/areas/search
+GET /v1/areas?q=...
 ```
 
 `code` mengikuti canonical code dari `region-id` tanpa transformasi atau separator tambahan.

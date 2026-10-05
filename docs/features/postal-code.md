@@ -76,7 +76,7 @@ Secara konseptual:
 
 ```text
 PostalCode
-├── postal_code
+├── code
 └── areas
       └── AdministrativeArea
 ```
@@ -94,7 +94,7 @@ Administrative Area
 Contoh:
 
 ```text
-Postal Code 45134
+Postal Code 10270
     ├── Area A
     └── Area B
 ```
@@ -103,8 +103,8 @@ dan:
 
 ```text
 Area A
-    ├── Postal Code 45134
-    └── Postal Code 45135
+    ├── Postal Code 10270
+    └── Postal Code 10271
 ```
 
 ## 5. Data Provenance
@@ -125,6 +125,10 @@ AUGMENTED
 API tidak boleh menyamakan kedua status tersebut.
 
 Jika data augmented memiliki confidence atau metadata derivation dari source dataset, informasi tersebut dapat dipertahankan.
+
+Provenance ini adalah metadata level data untuk keperluan import dan audit. Provenance
+tidak diekspos sebagai bagian dari public contract; endpoint postal code hanya
+mengembalikan `code` dan `areas`.
 
 ## 6. Authentication
 
@@ -168,13 +172,13 @@ Revoked API key:
 ### Request
 
 ```http
-GET /v1/postal-codes/{postal_code}
+GET /v1/postal-codes/{code}
 ```
 
 Example:
 
 ```http
-GET /v1/postal-codes/45134
+GET /v1/postal-codes/10270
 Authorization: Bearer <api-key>
 ```
 
@@ -185,13 +189,18 @@ HTTP `200 OK`.
 ```json
 {
   "data": {
-    "postal_code": "45134",
+    "code": "10270",
     "areas": [
       {
-        "code": "327301",
-        "name": "Example District",
-        "level": "district",
-        "source": "OFFICIAL"
+        "code": "3171011001",
+        "name": "Kelurahan Gelora",
+        "level": "village",
+        "hierarchy": {
+          "province": { "code": "31", "name": "DKI Jakarta" },
+          "regency": { "code": "3171", "name": "Jakarta Pusat" },
+          "district": { "code": "317101", "name": "Tanah Abang" },
+          "village": { "code": "3171011001", "name": "Kelurahan Gelora" }
+        }
       }
     ]
   }
@@ -200,12 +209,17 @@ HTTP `200 OK`.
 
 ### Behavior
 
-- `postal_code` harus exact match.
+- `code` harus exact match.
 - Postal code diperlakukan sebagai string.
 - Leading zero harus dipertahankan jika terdapat pada source data.
-- Response dapat memiliki lebih dari satu administrative area.
-- Area menggunakan canonical `region-id.code`.
-- `source` menunjukkan provenance relationship.
+- Response dapat memiliki lebih dari satu administrative area pada level apa pun.
+- `areas` selalu berupa array karena relationship `postal_code_areas` bersifat
+  many-to-many.
+- Area menggunakan canonical `region-id.code` dan object `AreaPublic` yang sama
+  dengan `GET /v1/areas`.
+- Areas diurutkan berdasarkan administrative level, kemudian canonical code.
+- `metadata`, `id`, dan `parent_code` tidak diekspos sebagai bagian dari public
+  contract.
 
 ### Not Found
 
@@ -217,7 +231,7 @@ HTTP `404`.
 {
   "error": {
     "code": "POSTAL_CODE_NOT_FOUND",
-    "message": "Postal code not found."
+    "message": "Kode pos tidak ditemukan"
   }
 }
 ```
@@ -227,7 +241,7 @@ HTTP `404`.
 ### Request
 
 ```http
-GET /v1/postal-codes/search
+GET /v1/postal-codes/search?q=...&limit=...
 ```
 
 Required:
@@ -245,29 +259,24 @@ limit
 Example:
 
 ```http
-GET /v1/postal-codes/search?q=45134
-Authorization: Bearer <api-key>
-```
-
-Search juga dapat menggunakan nama administrative area:
-
-```http
-GET /v1/postal-codes/search?q=Kesambi
+GET /v1/postal-codes/search?q=102&limit=20
 Authorization: Bearer <api-key>
 ```
 
 ### Search Behavior
 
-MVP menggunakan:
+Search scoped pada postal code saja:
 
-- case-insensitive matching untuk nama area;
-- prefix matching;
-- exact/prefix matching untuk postal code;
-- official administrative name;
-- limit.
+- `q` dicocokkan sebagai **prefix** pada postal code (`ILIKE 'q%'`);
+- matching bersifat case-insensitive;
+- nama administrative area tidak searched; pencarian area dilakukan melalui
+  `GET /v1/areas?q=...`;
+- hasil diurutkan canonical code ascending;
+- `limit` membatasi jumlah hasil.
 
 Search tidak menggunakan:
 
+- contains matching;
 - fuzzy matching;
 - typo correction;
 - alias;
@@ -296,13 +305,18 @@ HTTP `200 OK`.
 {
   "data": [
     {
-      "postal_code": "45134",
+      "code": "10270",
       "areas": [
         {
-          "code": "327301",
-          "name": "Kesambi",
-          "level": "district",
-          "source": "OFFICIAL"
+          "code": "3171011001",
+          "name": "Kelurahan Gelora",
+          "level": "village",
+          "hierarchy": {
+            "province": { "code": "31", "name": "DKI Jakarta" },
+            "regency": { "code": "3171", "name": "Jakarta Pusat" },
+            "district": { "code": "317101", "name": "Tanah Abang" },
+            "village": { "code": "3171011001", "name": "Kelurahan Gelora" }
+          }
         }
       ]
     }
@@ -313,6 +327,8 @@ HTTP `200 OK`.
   }
 }
 ```
+
+Setiap item pada `data` memakai object yang sama dengan hasil `GET /v1/postal-codes/{code}`.
 
 ### Empty Result
 
@@ -334,6 +350,9 @@ Search kosong tidak menggunakan `404`.
 
 ## 9. Endpoint: Area → Postal Codes
 
+Endpoint ini adalah relasi balik dari resource postal code: menjawab "postal code
+mana yang menutupi area ini", bukan primitive terpisah.
+
 ### Request
 
 ```http
@@ -343,7 +362,7 @@ GET /v1/areas/{code}/postal-codes
 Example:
 
 ```http
-GET /v1/areas/327301/postal-codes
+GET /v1/areas/3171011001/postal-codes
 Authorization: Bearer <api-key>
 ```
 
@@ -353,25 +372,18 @@ HTTP `200 OK`.
 
 ```json
 {
-  "data": [
-    {
-      "postal_code": "45134"
-    },
-    {
-      "postal_code": "45135"
-    }
-  ],
-  "meta": {
-    "count": 2
-  }
+  "code": "3171011001",
+  "name": "Kelurahan Gelora",
+  "postal_codes": ["10270"]
 }
 ```
 
 ### Behavior
 
 - `{code}` menggunakan canonical administrative code.
+- `postal_codes` adalah array of string, bukan array of object.
 - Hanya relationship yang terkait langsung dengan area tersebut yang dikembalikan.
-- Postal codes diurutkan secara deterministic.
+- Postal codes diurutkan canonical code ascending.
 - Area yang valid tetapi tidak memiliki postal code menghasilkan array kosong.
 
 ### Unknown Area
@@ -384,81 +396,52 @@ HTTP `404`.
 {
   "error": {
     "code": "AREA_NOT_FOUND",
-    "message": "Administrative area not found."
+    "message": "Wilayah tidak ditemukan"
   }
 }
 ```
 
-## 10. Postal Code Search by Area Name
+## 10. Response Area Object
 
-Search berdasarkan nama area harus menggunakan relationship postal-code → administrative-area.
-
-Example:
-
-```http
-GET /v1/postal-codes/search?q=Kesambi
-```
-
-Expected behavior:
-
-```text
-search administrative area name
-        ↓
-find matching administrative areas
-        ↓
-find related postal codes
-        ↓
-return unique postal codes
-```
-
-Jika satu postal code berhubungan dengan beberapa matching areas, postal code hanya muncul satu kali dalam result.
-
-## 11. Response Area Object
-
-Area reference dalam Postal Code API menggunakan:
+Area reference dalam Postal Code API menggunakan object yang sama dengan
+`GET /v1/areas`:
 
 ```json
 {
-  "code": "327301",
-  "name": "Kesambi",
+  "code": "317101",
+  "name": "Tanah Abang",
   "level": "district",
-  "source": "OFFICIAL"
+  "hierarchy": {
+    "province": { "code": "31", "name": "DKI Jakarta" },
+    "regency": { "code": "3171", "name": "Jakarta Pusat" },
+    "district": { "code": "317101", "name": "Tanah Abang" }
+  }
 }
 ```
 
 Fields:
 
-| Field    | Description                                       |
-| -------- | ------------------------------------------------- |
-| `code`   | Canonical administrative code                     |
-| `name`   | Official administrative name                      |
-| `level`  | `province`, `regency`, `district`, atau `village` |
-| `source` | `OFFICIAL` atau `AUGMENTED`                       |
+| Field        | Description                                                          |
+| ------------ | -------------------------------------------------------------------- |
+| `code`       | Canonical administrative code, tanpa separator `.`                    |
+| `name`       | Official administrative name                                          |
+| `level`      | `province`, `regency`, `district`, atau `village`                     |
+| `hierarchy`  | Ancestor dan area itu sendiri, keyed by level                         |
 
-Postal Code API tidak wajib mengembalikan full breadcrumb pada MVP.
+Provenance/status data disimpan pada database untuk keperluan import, tetapi
+tidak merupakan bagian dari public contract dan tidak dikembalikan oleh endpoint
+postal code.
 
-Consumer dapat mengambil hierarchy melalui:
-
-```http
-GET /v1/areas/{code}
-```
-
-## 12. Query Parameter Validation
+## 11. Query Parameter Validation
 
 ### `q`
 
 `q` wajib diberikan pada search.
 
-Missing:
+Missing atau empty:
 
 ```text
-400 INVALID_REQUEST
-```
-
-Empty:
-
-```text
-400 INVALID_REQUEST
+422 INVALID_REQUEST
 ```
 
 ### `limit`
@@ -469,13 +452,16 @@ Valid range:
 1–100
 ```
 
-Invalid:
+Nilai di luar range:
 
 ```text
-400 INVALID_LIMIT
+422 INVALID_REQUEST
 ```
 
-### `postal_code`
+Tidak ada error code khusus `INVALID_LIMIT`; pelanggaran range dan bentuk
+parameter ditangani oleh envelope `INVALID_REQUEST` yang sama.
+
+### `code`
 
 Lookup menggunakan exact value.
 
@@ -485,7 +471,7 @@ Unknown:
 404 POSTAL_CODE_NOT_FOUND
 ```
 
-## 13. Error Contract
+## 12. Error Contract
 
 Semua error menggunakan format:
 
@@ -498,22 +484,19 @@ Semua error menggunakan format:
 }
 ```
 
-Error minimum:
+Error yang diimplementasikan:
 
 ```text
 INVALID_REQUEST
 INVALID_API_KEY
 API_KEY_REVOKED
-INVALID_LIMIT
 AREA_NOT_FOUND
 POSTAL_CODE_NOT_FOUND
-RATE_LIMITED
-INTERNAL_ERROR
 ```
 
 Internal implementation details seperti stack trace, SQL query, atau database error tidak boleh dikembalikan kepada consumer.
 
-## 14. Data Requirements
+## 13. Data Requirements
 
 Importer/integration harus mempertahankan:
 
@@ -528,59 +511,60 @@ Administrative relationship harus menggunakan canonical `region-id.code`.
 
 Duplicate relationship harus tidak menghasilkan duplicate API result.
 
-## 15. Acceptance Criteria
+## 14. Acceptance Criteria
 
 ### Get Postal Code
 
-- [ ] Valid postal code menghasilkan `200`.
-- [ ] Response memiliki `postal_code`.
-- [ ] Response memiliki `areas`.
-- [ ] Postal code dapat memiliki multiple areas.
-- [ ] Area memiliki `code`.
-- [ ] Area memiliki `name`.
-- [ ] Area memiliki `level`.
-- [ ] Area memiliki `source`.
-- [ ] Canonical administrative code dipertahankan.
-- [ ] Leading zero postal code dipertahankan.
-- [ ] Unknown postal code menghasilkan `404 POSTAL_CODE_NOT_FOUND`.
-- [ ] Missing API key menghasilkan `401`.
-- [ ] Invalid API key menghasilkan `401`.
-- [ ] Revoked API key menghasilkan `403`.
+- [x] Valid postal code menghasilkan `200`.
+- [x] Response dibungkus `data`.
+- [x] Response memiliki `code`.
+- [x] Response memiliki `areas` berupa array.
+- [x] Postal code dapat memiliki multiple areas.
+- [x] Area memiliki `code`.
+- [x] Area memiliki `name`.
+- [x] Area memiliki `level` canonical.
+- [x] Area memiliki `hierarchy`.
+- [x] Area tidak mengekspos `metadata` atau `parent_code`.
+- [x] Canonical administrative code dipertahankan.
+- [x] Leading zero postal code dipertahankan.
+- [x] Unknown postal code menghasilkan `404 POSTAL_CODE_NOT_FOUND`.
+- [x] Missing API key menghasilkan `401`.
+- [x] Invalid API key menghasilkan `401`.
+- [x] Revoked API key menghasilkan `403`.
 
 ### Search Postal Codes
 
-- [ ] `q` wajib.
-- [ ] Missing `q` menghasilkan `400 INVALID_REQUEST`.
-- [ ] Empty `q` menghasilkan `400 INVALID_REQUEST`.
-- [ ] Postal code dapat dicari berdasarkan exact/prefix value.
-- [ ] Area name dapat digunakan untuk search.
-- [ ] Search area name case-insensitive.
-- [ ] Search menggunakan prefix matching.
-- [ ] Result tidak memiliki duplicate postal code.
-- [ ] Default limit adalah 20.
-- [ ] Maximum limit adalah 100.
-- [ ] Invalid limit menghasilkan `400 INVALID_LIMIT`.
-- [ ] Empty result menghasilkan `200` dengan array kosong.
-- [ ] Authentication wajib.
+- [x] `q` wajib.
+- [x] Missing `q` menghasilkan `422 INVALID_REQUEST`.
+- [x] Empty `q` menghasilkan `422 INVALID_REQUEST`.
+- [x] Postal code dapat dicari berdasarkan prefix value.
+- [x] Search bersifat case-insensitive.
+- [x] Search tidak lagi mencari berdasarkan nama area.
+- [x] Result tidak memiliki duplicate postal code.
+- [x] Default limit adalah 20.
+- [x] Maximum limit adalah 100.
+- [x] Invalid limit menghasilkan `422 INVALID_REQUEST`.
+- [x] Empty result menghasilkan `200` dengan array kosong.
+- [x] Authentication wajib.
 
 ### Area → Postal Codes
 
-- [ ] Valid area code menghasilkan `200`.
-- [ ] Canonical area code digunakan.
-- [ ] Result berisi postal codes yang terkait.
-- [ ] Result tidak duplicate.
-- [ ] Postal codes deterministic ordering.
-- [ ] Valid area tanpa postal code menghasilkan array kosong.
-- [ ] Unknown area menghasilkan `404 AREA_NOT_FOUND`.
-- [ ] Authentication wajib.
+- [x] Valid area code menghasilkan `200`.
+- [x] Canonical area code digunakan.
+- [x] Result berisi postal codes sebagai array of string.
+- [x] Result tidak duplicate.
+- [x] Postal codes deterministic ordering.
+- [x] Valid area tanpa postal code menghasilkan array kosong.
+- [x] Unknown area menghasilkan `404 AREA_NOT_FOUND`.
+- [x] Authentication wajib.
 
 ### Provenance
 
-- [ ] `OFFICIAL` dapat dibedakan dari `AUGMENTED`.
-- [ ] API tidak menyamakan kedua status.
-- [ ] Metadata/confidence augmented dipertahankan jika tersedia dari source.
+- [x] `OFFICIAL` dapat dibedakan dari `AUGMENTED` pada level data import.
+- [x] Provenance tidak diekspos sebagai bagian dari public contract.
+- [x] Metadata/confidence augmented dipertahankan jika tersedia dari source.
 
-## 16. Testing Requirements
+## 15. Testing Requirements
 
 ### Postal Code Lookup
 
@@ -592,8 +576,6 @@ unknown postal code
 multiple areas
 leading zero
 canonical administrative code
-official source
-augmented source
 authentication
 ```
 
@@ -604,10 +586,8 @@ Test minimal:
 ```text
 search by postal code
 search by postal code prefix
-search by area name
-case-insensitive area search
-prefix area search
-duplicate postal code elimination
+case-insensitive postal code search
+area name does not match
 limit
 empty result
 missing q
@@ -644,26 +624,25 @@ idempotent import
 duplicate detection
 ```
 
-## 17. Definition of Done
+## 16. Definition of Done
 
 Postal Code API dianggap selesai apabila:
 
-- [ ] `GET /v1/postal-codes/{postal_code}` tersedia.
-- [ ] `GET /v1/postal-codes/search` tersedia.
-- [ ] `GET /v1/areas/{code}/postal-codes` tersedia.
-- [ ] `postal-code-id` berhasil diintegrasikan.
-- [ ] Administrative relationships menggunakan canonical `region-id.code`.
-- [ ] Leading zero postal code dipertahankan.
-- [ ] `OFFICIAL` dan `AUGMENTED` dapat dibedakan.
-- [ ] Authentication berjalan.
-- [ ] Error contract konsisten.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] API tests pass.
-- [ ] OpenAPI specification tersedia.
-- [ ] Acceptance criteria terpenuhi.
+- [x] `GET /v1/postal-codes/{code}` tersedia.
+- [x] `GET /v1/postal-codes/search` tersedia.
+- [x] `GET /v1/areas/{code}/postal-codes` tersedia.
+- [x] `postal-code-id` berhasil diintegrasikan.
+- [x] Administrative relationships menggunakan canonical `region-id.code`.
+- [x] Leading zero postal code dipertahankan.
+- [x] Authentication berjalan.
+- [x] Error contract konsisten.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
+- [x] API tests pass.
+- [x] OpenAPI specification tersedia.
+- [x] Acceptance criteria terpenuhi.
 
-## 18. Out of Scope Reminder
+## 17. Out of Scope Reminder
 
 Implementasi feature ini tidak boleh memperluas scope menjadi:
 
