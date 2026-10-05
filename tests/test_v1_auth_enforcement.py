@@ -33,6 +33,18 @@ UNAUTHENTICATED_PROBES: list[tuple[str, dict[str, str]]] = [
     ("/v1/areas/autocomplete", {}),
     ("/v1/areas", {}),
     ("/v1/areas/{code}", {}),
+    ("/v1/areas/provinces", {}),
+    ("/v1/areas/{code}/children", {}),
+    ("/v1/areas/provinces/{province_code}/regencies", {}),
+    (
+        "/v1/areas/provinces/{province_code}/regencies/{regency_code}/districts",
+        {},
+    ),
+    (
+        "/v1/areas/provinces/{province_code}/regencies/"
+        "{regency_code}/districts/{district_code}/villages",
+        {},
+    ),
     ("/v1/postal-codes/search", {}),
     ("/v1/postal-codes/{code}", {}),
     ("/v1/areas/{code}/postal-codes", {}),
@@ -56,12 +68,41 @@ def test_discovery_finds_every_known_endpoint():
     assert _all_v1_paths() == [
         "/v1/areas",
         "/v1/areas/autocomplete",
+        "/v1/areas/provinces",
+        "/v1/areas/provinces/{province_code}/regencies",
+        (
+            "/v1/areas/provinces/{province_code}/regencies/"
+            "{regency_code}/districts"
+        ),
+        (
+            "/v1/areas/provinces/{province_code}/regencies/"
+            "{regency_code}/districts/{district_code}/villages"
+        ),
         "/v1/areas/{code}",
+        "/v1/areas/{code}/children",
         "/v1/areas/{code}/postal-codes",
         "/v1/postal-codes/search",
         "/v1/postal-codes/{code}",
         "/v1/reverse-geocode",
     ]
+
+
+def test_static_area_routes_are_registered_before_the_dynamic_code_route():
+    """Starlette matches in registration order.
+
+    `/v1/areas/provinces` must be declared before `/v1/areas/{code}`,
+    otherwise the dynamic segment swallows "provinces" and the province list
+    endpoint is unreachable — it would answer 404 AREA_NOT_FOUND instead.
+    """
+    paths = [route.path for route in app.routes if getattr(route, "path", "").startswith("/v1/areas")]
+    static = [
+        p
+        for p in paths
+        if "{" not in p
+    ]
+    assert "/v1/areas/provinces" in paths
+    for path in static:
+        assert paths.index(path) < paths.index("/v1/areas/{code}"), path
 
 
 @pytest.mark.parametrize("path,params", UNAUTHENTICATED_PROBES)

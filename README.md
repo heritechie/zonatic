@@ -71,6 +71,62 @@ searched here; use `/v1/areas` for name lookup. An unknown code returns 404
 not a separate primitive. It returns the area `code`, `name`, and the covering
 postal codes as a sorted list of code strings.
 
+## Administrative hierarchy
+
+Two navigation styles over the same `administrative_areas` table and the same
+query implementation. Pick whichever fits: `children` for generic
+walk-up-the-tree code, the fixed routes for selector UIs that already know
+which level they are on.
+
+```bash
+# Generic: direct children of any area
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/32/children'
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/3274/children'
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/327401/children'
+
+# Convenience: level-specific routes rooted at the provinces
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/provinces'
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/provinces/32/regencies'
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/provinces/32/regencies/3274/districts'
+curl -H 'Authorization: Bearer <api-key>' 'http://localhost:8000/v1/areas/provinces/32/regencies/3274/districts/327401/villages'
+```
+
+All five return the standard area list shape — `AreaPublic` items in `data`, with
+`meta.limit` and `meta.count`:
+
+```json
+{
+  "data": [
+    {
+      "code": "327401",
+      "name": "...",
+      "level": "district",
+      "hierarchy": { "province": {"code": "...", "name": "..."}, "...": {} }
+    }
+  ],
+  "meta": { "limit": 20, "count": 1 }
+}
+```
+
+Behaviour worth knowing:
+
+- **`children` is one level deep only.** A province returns its regencies, not
+  the entire subtree. Walk down one request per level.
+- **`level` is one of `province`, `regency`, `district`, `village`.** `regency`
+  deliberately covers both kabupaten and kota: at this abstraction they are the
+  same level, so there is no separate `cities` resource.
+- **Ordering is canonical code ascending**, matching the deterministic ordering
+  used elsewhere.
+- **`limit` is `20` by default, `1..100`.** No offset or page pagination yet.
+- **No children is a success, not an error.** A village has none, so
+  `/v1/areas/3274011001/children` returns `200` with `"data": []`.
+- **Hierarchy paths are fully validated.** `327401` must really be a child of
+  `3274` inside province `32`. A code that exists but belongs to a different
+  branch returns `404 AREA_NOT_FOUND` rather than a plausible list from the
+  wrong subtree, at every level.
+
+All area routes require a valid API key, exactly like the rest of `/v1`.
+
 ## Struktur data
 
 Tabel `administrative_areas` menyimpan geometri `MULTIPOLYGON` dalam SRID 4326, kode stabil, level, dan relasi parent. Indeks GiST pada `geometry` dipakai oleh PostGIS saat pencarian titik-dalam-poligon.

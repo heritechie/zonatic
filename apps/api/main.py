@@ -49,6 +49,124 @@ LEVEL_NAMES: dict[int, AreaLevel] = {
 LEVEL_INTS: dict[AreaLevel, int] = {level: value for value, level in LEVEL_NAMES.items()}
 
 
+def _fetch_area(db: Session, code: str) -> dict | None:
+    """Load one administrative area row by canonical code, or None.
+
+    The single point of truth for "does this area exist", shared by every
+    lookup and hierarchy endpoint so the 404 rule cannot drift between them.
+    """
+    row = db.execute(
+        text(
+            """
+            SELECT code, name, level, parent_code
+            FROM administrative_areas
+            WHERE code = :code
+            """
+        ),
+        {"code": code},
+    ).mappings().first()
+    return dict(row) if row is not None else None
+
+
+def _require_area(db: Session, code: str, expected_level: AreaLevel | None = None) -> dict:
+    """Load one area or raise the shared 404.
+
+    `expected_level` additionally asserts that the code addresses an area of
+    that administrative level. Without it, a hierarchy URL such as
+    `/areas/provinces/3274/regencies` would silently accept a regency where a
+    province was required and then answer a question nobody asked.
+    """
+    area = _fetch_area(db, code)
+    if area is None:
+        raise AreaNotFoundError()
+    if expected_level is not None and area["level"] != LEVEL_INTS[expected_level]:
+        raise AreaNotFoundError()
+    return area
+
+
+def _require_child_of(
+    db: Session,
+    code: str,
+    parent: dict,
+    expected_level: AreaLevel,
+) -> dict:
+    """Resolve a hierarchy path segment, proving the parent-child relationship.
+
+    A child code alone is never enough: `327401` might exist yet not belong to
+    regency `3274`. Returning it anyway would hand back a plausible-looking
+    subtree from the wrong parent, which is exactly the silent-wrong-answer
+    failure mode a hierarchy API must not have. Any broken link in the chain
+    surfaces as the same 404 `AREA_NOT_FOUND` the rest of the area API uses.
+    """
+    child = _require_area(db, code, expected_level)
+    if child["parent_code"] != parent["code"]:
+        raise AreaNotFoundError()
+    return child
+
+
+def _fetch_children(db: Session, parent_code: str, limit: int) -> list[dict]:
+    """Direct children of an area, ordered by canonical code ascending.
+
+    Only one level deep by design: `children` is a navigation step for building
+    a selector, and recursive descent would let one request pull an entire
+    province. Callers walk the tree one request per level, or use the
+    convenience routes which chain the same query.
+
+    Ordered by `code` rather than `name` so the result set is stable across
+    datasets and matches the deterministic ordering already used for postal
+    areas. Canonical codes are level-aligned (3273 → 327301 → 3273011001), so
+    code order is also geographic grouping order.
+    """
+    return [
+        dict(row)
+        for row in db.execute(
+            text(
+                """
+                SELECT code, name, level, parent_code
+                FROM administrative_areas
+                WHERE parent_code = :parent_code
+                ORDER BY code ASC
+                LIMIT :limit
+                """
+            ),
+            {"parent_code": parent_code, "limit": limit},
+        ).mappings()
+    ]
+
+
+def _areas_public(db: Session, rows: list[dict]) -> list[AreaPublic]:
+    """Map area rows onto the canonical public model.
+
+    Shared by every area list endpoint so `level` naming and `hierarchy`
+    construction stay identical across search, children, and the hierarchy
+    convenience routes.
+    """
+    return [
+        AreaPublic(
+            code=row["code"],
+            name=row["name"],
+            level=LEVEL_NAMES[row["level"]],
+            hierarchy=_build_hierarchy(db, dict(row)),
+        )
+        for row in rows
+    ]
+
+
+def _children_response(db: Session, parent: dict, limit: int) -> AreasListResponse:
+    """The one query path behind `/children` and every hierarchy route.
+
+    Both API styles differ only in how they resolve `parent`; the moment a
+    parent area is known they share this function, so there is exactly one
+    implementation of "list the children of this area".
+    """
+    rows = _fetch_children(db, parent["code"], limit)
+    data = _areas_public(db, rows)
+    return AreasListResponse(
+        data=data,
+        meta=AreasListMeta(limit=limit, count=len(data)),
+    )
+
+
 def _build_hierarchy(db: Session, area: dict) -> dict[str, HierarchyNode]:
     """Build the public `hierarchy` payload for an area.
 
@@ -115,16 +233,10 @@ def _postal_code_public(db: Session, postal_code: dict) -> PostalCodePublic:
         {"postal_code_id": postal_code["id"]},
     ).mappings().all()
 
-    areas = [
-        AreaPublic(
-            code=row["code"],
-            name=row["name"],
-            level=LEVEL_NAMES[row["level"]],
-            hierarchy=_build_hierarchy(db, dict(row)),
-        )
-        for row in area_rows
-    ]
-    return PostalCodePublic(code=postal_code["code"], areas=areas)
+    return PostalCodePublic(
+        code=postal_code["code"],
+        areas=_areas_public(db, [dict(row) for row in area_rows]),
+    )
 
 
 @asynccontextmanager
@@ -392,22 +504,172 @@ def search_areas(
         params,
     ).mappings().all()
 
-    results: list[AreaPublic] = []
-    for row in rows:
-        hierarchy = _build_hierarchy(db, dict(row))
-        results.append(
-            AreaPublic(
-                code=row["code"],
-                name=row["name"],
-                level=LEVEL_NAMES[row["level"]],
-                hierarchy=hierarchy,
-            )
-        )
+    results = _areas_public(db, [dict(row) for row in rows])
 
     return AreasListResponse(
         data=results,
         meta=AreasListMeta(limit=limit, count=len(results)),
     )
+
+
+# The hierarchy routes below MUST stay registered above `/areas/{code}`.
+# Starlette matches routes in registration order, so `/areas/provinces`
+# declared after `/areas/{code}` would never be reached: the dynamic segment
+# would capture "provinces" as a code and return 404 AREA_NOT_FOUND.
+# `tests/test_areas.py::TestRouteResolution` pins this ordering so a future
+# refactor that reorders these blocks fails loudly instead of in production.
+
+
+@v1_router.get(
+    "/areas/provinces",
+    response_model=AreasListResponse,
+    tags=["Areas"],
+    summary="List provinces",
+)
+def list_provinces(
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+) -> AreasListResponse:
+    """List every province-level administrative area.
+
+    The root of the hierarchy and the fastest way to populate a province
+    selector. Each province carries the same canonical `level` and `hierarchy`
+    as every other area endpoint; there is no province-specific schema.
+
+    Results are ordered by canonical code ascending. Requires a valid API key.
+    """
+    rows = [
+        dict(row)
+        for row in db.execute(
+            text(
+                """
+                SELECT code, name, level, parent_code
+                FROM administrative_areas
+                WHERE level = :level
+                ORDER BY code ASC
+                LIMIT :limit
+                """
+            ),
+            {"level": LEVEL_INTS[AreaLevel.province], "limit": limit},
+        ).mappings()
+    ]
+    data = _areas_public(db, rows)
+    return AreasListResponse(
+        data=data,
+        meta=AreasListMeta(limit=limit, count=len(data)),
+    )
+
+
+@v1_router.get(
+    "/areas/{code}/children",
+    response_model=AreasListResponse,
+    tags=["Areas"],
+    summary="List the direct children of an administrative area",
+)
+def get_area_children(
+    code: str,
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+) -> AreasListResponse:
+    """List the direct children of one administrative area.
+
+    The generic navigation primitive for building a province/regency/district/
+    village selector: fetch the parent, then fetch its children, then repeat
+    for the next level. Only direct children are returned, never the whole
+    subtree, so the size of a response stays predictable regardless of how
+    deep the data goes.
+
+    - `/v1/areas/32/children`      -> regencies in province 32
+    - `/v1/areas/3274/children`    -> districts in regency 3274
+    - `/v1/areas/327401/children`  -> villages in district 327401
+
+    A village has no children, so `/v1/areas/3274011001/children` returns 200
+    with an empty `data` list rather than a 404: "no children" is a valid
+    answer, only an unknown area code is an error.
+
+    Ordering is canonical code ascending. Requires a valid API key.
+    """
+    parent = _require_area(db, code)
+    return _children_response(db, parent, limit)
+
+
+@v1_router.get(
+    "/areas/provinces/{province_code}/regencies",
+    response_model=AreasListResponse,
+    tags=["Areas"],
+    summary="List regencies in a province",
+)
+def list_regencies(
+    province_code: str,
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+) -> AreasListResponse:
+    """List the regencies of one province.
+
+    `regency` is the level-2 administrative unit and deliberately covers both
+    Indonesian kabupaten and kota: at this abstraction they share a level, and
+    exposing them as separate resources would fork the hierarchy for a
+    distinction the level model does not make.
+
+    404 `AREA_NOT_FOUND` when the province code is unknown or is not a
+    province. Requires a valid API key.
+    """
+    province = _require_area(db, province_code, AreaLevel.province)
+    return _children_response(db, province, limit)
+
+
+@v1_router.get(
+    "/areas/provinces/{province_code}/regencies/{regency_code}/districts",
+    response_model=AreasListResponse,
+    tags=["Areas"],
+    summary="List districts in a province's regency",
+)
+def list_districts(
+    province_code: str,
+    regency_code: str,
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+) -> AreasListResponse:
+    """List the districts of one regency, within its province.
+
+    The whole path is validated, not just the last segment: `327301` must
+    actually be a direct child of `3273` inside province `32`. A regency that
+    exists under a different province returns 404 `AREA_NOT_FOUND` rather than
+    a district list from the wrong branch of the tree.
+
+    Requires a valid API key.
+    """
+    province = _require_area(db, province_code, AreaLevel.province)
+    regency = _require_child_of(db, regency_code, province, AreaLevel.regency)
+    return _children_response(db, regency, limit)
+
+
+@v1_router.get(
+    "/areas/provinces/{province_code}/regencies/{regency_code}/districts/{district_code}/villages",
+    response_model=AreasListResponse,
+    tags=["Areas"],
+    summary="List villages in a province's regency district",
+)
+def list_villages(
+    province_code: str,
+    regency_code: str,
+    district_code: str,
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+) -> AreasListResponse:
+    """List the villages of one district, within its regency and province.
+
+    Every link in the chain is verified: province -> regency -> district. A
+    district that exists but sits under a different regency, or a regency
+    under a different province, returns 404 `AREA_NOT_FOUND` instead of a
+    plausible-looking list from the wrong subtree.
+
+    Requires a valid API key.
+    """
+    province = _require_area(db, province_code, AreaLevel.province)
+    regency = _require_child_of(db, regency_code, province, AreaLevel.regency)
+    district = _require_child_of(db, district_code, regency, AreaLevel.district)
+    return _children_response(db, district, limit)
 
 
 @v1_router.get(
@@ -429,30 +691,9 @@ def get_area(
 
     Requires a valid API key.
     """
-    row = db.execute(
-        text(
-            """
-            SELECT code, name, level, parent_code, metadata
-            FROM administrative_areas
-            WHERE code = :code
-            """
-        ),
-        {"code": code},
-    ).mappings().first()
+    area = _require_area(db, code)
 
-    if row is None:
-        raise AreaNotFoundError()
-
-    hierarchy = _build_hierarchy(db, dict(row))
-
-    return AreaSingleResponse(
-        data=AreaPublic(
-            code=row["code"],
-            name=row["name"],
-            level=LEVEL_NAMES[row["level"]],
-            hierarchy=hierarchy,
-        )
-    )
+    return AreaSingleResponse(data=_areas_public(db, [area])[0])
 
 
 @v1_router.get(
