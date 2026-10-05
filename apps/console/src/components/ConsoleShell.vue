@@ -1,10 +1,35 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import UserAvatar from "./UserAvatar.vue";
 
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+
+/**
+ * Primary navigation items.
+ *
+ * V1 ships only Overview and API. Data, Zona, Rules, and Settings still have
+ * routes and `ComingSoonView` pages — they are hidden from the primary nav, not
+ * removed, so their URLs keep working and they can be revealed again by
+ * flipping `visible` rather than by re-adding markup.
+ *
+ * `visible: false` also means no active-state is computed for those items, so
+ * landing directly on `/data` shows a page with no highlighted nav entry. That
+ * is intentional: highlighting a destination the nav does not advertise would
+ * be worse than showing nothing.
+ */
+const NAV_ITEMS = [
+  { label: "Overview", to: "/", name: "overview", visible: true },
+  { label: "Data", to: "/data", name: "data", visible: false },
+  { label: "Zona", to: "/zona", name: "zona", visible: false },
+  { label: "Rules", to: "/rules", name: "rules", visible: false },
+  { label: "API", to: "/api", name: "api", visible: true },
+  { label: "Settings", to: "/settings", name: "settings", visible: false },
+] as const;
+
+const visibleNavItems = NAV_ITEMS.filter((item) => item.visible);
 
 async function handleSignOut() {
   await auth.signOut();
@@ -32,58 +57,23 @@ function isActive(name: string) {
 
         <nav class="shell__nav" aria-label="Console">
           <RouterLink
-            to="/"
-            :class="['shell__link', { active: isActive('overview') }]"
+            v-for="item in visibleNavItems"
+            :key="item.name"
+            :to="item.to"
+            :class="['shell__link', { active: isActive(item.name) }]"
           >
-            Overview
-          </RouterLink>
-          <RouterLink
-            to="/data"
-            :class="['shell__link', { active: isActive('data') }]"
-          >
-            Data
-          </RouterLink>
-          <RouterLink
-            to="/zona"
-            :class="['shell__link', { active: isActive('zona') }]"
-          >
-            Zona
-          </RouterLink>
-          <RouterLink
-            to="/rules"
-            :class="['shell__link', { active: isActive('rules') }]"
-          >
-            Rules
-          </RouterLink>
-          <RouterLink
-            to="/api"
-            :class="['shell__link', { active: isActive('api') }]"
-          >
-            API
-          </RouterLink>
-          <RouterLink
-            to="/settings"
-            :class="['shell__link', { active: isActive('settings') }]"
-          >
-            Settings
+            {{ item.label }}
           </RouterLink>
         </nav>
 
         <div class="shell__account">
           <span class="shell__user">
-            <img
-              v-if="auth.avatarUrl"
-              :src="auth.avatarUrl"
-              alt=""
-              class="shell__avatar"
-            />
-            <span
-              v-else
-              class="shell__avatar shell__avatar--initial"
-              aria-hidden="true"
-            >
-              {{ auth.displayName.slice(0, 1).toUpperCase() }}
-            </span>
+            <!--
+              The avatar falls back to an initial whenever the Google image URL
+              is missing, malformed, or fails to load, so the top bar can never
+              render a broken image. Sized to match the previous inline avatar.
+            -->
+            <UserAvatar :src="auth.avatarUrl" :name="auth.displayName" size="1.75rem" />
             <span class="shell__email">{{ auth.email }}</span>
           </span>
           <button type="button" class="shell__signout" @click="handleSignOut">
@@ -168,23 +158,8 @@ function isActive(name: string) {
   min-width: 0;
 }
 
-.shell__avatar {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  flex: none;
-  object-fit: cover;
-}
-
-.shell__avatar--initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-hover);
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
+/* Avatar geometry and the initial treatment live in UserAvatar.vue, so they
+   apply identically wherever the control is reused. */
 
 .shell__email {
   font-size: 0.8125rem;
