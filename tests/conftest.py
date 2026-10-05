@@ -113,12 +113,26 @@ CREATE TABLE IF NOT EXISTS api_keys (
     name        VARCHAR(255) NOT NULL,
     key_prefix  VARCHAR(20) NOT NULL,
     key_hash    VARCHAR(64) NOT NULL,
-    revoked_at  TIMESTAMPTZ,
+revoked_at  TIMESTAMPTZ,
+    -- Stamped by apps/api/dependencies.py when a key authenticates a request.
+    last_used_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
+
+-- The table may already exist from an earlier run, so the column is added
+-- separately to keep this block re-runnable.
+ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ;
+
+-- Mirrors tenant_usage from migration 0007 so usage metering can be tested.
+-- Tenant-level lifetime counter: one row per tenant, no date buckets.
+CREATE TABLE IF NOT EXISTS tenant_usage (
+    tenant_id          UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    api_requests_total BIGINT NOT NULL DEFAULT 0,
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- 0009: canonical administrative codes.
 -- Equivalent to supabase/migrations/20260101000009_canonical_area_codes.sql.

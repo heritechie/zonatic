@@ -1,4 +1,3 @@
-import uuid
 import hashlib
 
 import pytest
@@ -6,7 +5,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 
 from apps.api.database import SessionLocal
-from apps.api.dependencies import get_current_tenant
+from apps.api.dependencies import AuthContext, get_current_tenant
 from apps.api.exceptions import ZonaticException
 from apps.api.main import zonatic_exception_handler
 from fastapi.testclient import TestClient
@@ -19,8 +18,11 @@ _test_app.add_exception_handler(ZonaticException, zonatic_exception_handler)
 
 
 @_test_app.get("/protected")
-def _protected(tenant_id: uuid.UUID = Depends(get_current_tenant)) -> dict:
-    return {"tenant_id": tenant_id}
+def _protected(auth: AuthContext = Depends(get_current_tenant)) -> dict:
+    return {
+        "tenant_id": str(auth.tenant_id),
+        "api_key_id": str(auth.api_key_id),
+    }
 
 
 client = TestClient(_test_app)

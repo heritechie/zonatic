@@ -1,7 +1,6 @@
-import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -108,6 +107,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Every /v1 endpoint is an authenticated API. Authentication is enforced once at
+# the router boundary instead of per endpoint, so a newly added route cannot
+# accidentally ship without it. `/health`, `/docs` and `/openapi.json` stay on the
+# app itself and remain public.
+#
+# This is a gate, not a filter: administrative areas and postal codes are global
+# master data shared by every tenant, so no endpoint scopes its queries by tenant.
+v1_router = APIRouter(prefix="/v1", dependencies=[Depends(get_current_tenant)])
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -168,8 +176,8 @@ def health(db: Session = Depends(get_db)) -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get(
-    "/v1/reverse-geocode",
+@v1_router.get(
+    "/reverse-geocode",
     response_model=ReverseGeocodeResponse,
     tags=["Geocoding"],
     summary="Reverse geocode a coordinate",
@@ -214,8 +222,8 @@ def reverse_geocode(
     )
 
 
-@app.get(
-    "/v1/areas/autocomplete",
+@v1_router.get(
+    "/areas/autocomplete",
     response_model=AreaAutocompleteResponse,
     tags=["Areas"],
     summary="Search and autocomplete administrative areas",
@@ -287,8 +295,8 @@ def autocomplete_areas(
     return AreaAutocompleteResponse(results=results)
 
 
-@app.get(
-    "/v1/areas",
+@v1_router.get(
+    "/areas",
     response_model=AreasListResponse,
     tags=["Areas"],
     summary="List Indonesian administrative areas",
@@ -305,7 +313,6 @@ def search_areas(
     ),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
     db: Session = Depends(get_db),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
 ) -> AreasListResponse:
     """Search Indonesian administrative areas.
 
@@ -365,8 +372,8 @@ def search_areas(
     )
 
 
-@app.get(
-    "/v1/areas/{code}",
+@v1_router.get(
+    "/areas/{code}",
     response_model=AreaSingleResponse,
     tags=["Areas"],
     summary="Get an administrative area by code",
@@ -374,7 +381,6 @@ def search_areas(
 def get_area(
     code: str,
     db: Session = Depends(get_db),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
 ) -> AreaSingleResponse:
     """Retrieve a single Indonesian administrative area by canonical code.
 
@@ -411,8 +417,8 @@ def get_area(
     )
 
 
-@app.get(
-    "/v1/postal-codes/search",
+@v1_router.get(
+    "/postal-codes/search",
     response_model=list[PostalCodeResult],
     tags=["Postal Codes"],
     summary="Search postal codes",
@@ -421,7 +427,6 @@ def search_postal_codes(
     q: str = Query(..., min_length=1, description="Search keyword (postal code or area name)"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
     db: Session = Depends(get_db),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
 ) -> list[PostalCodeResult]:
     """Search postal codes by code or associated administrative area name.
 
@@ -446,8 +451,8 @@ def search_postal_codes(
     return [PostalCodeResult(code=row["code"], metadata=row["metadata"]) for row in rows]
 
 
-@app.get(
-    "/v1/postal-codes/{code}",
+@v1_router.get(
+    "/postal-codes/{code}",
     response_model=PostalCodeResponse,
     tags=["Postal Codes"],
     summary="Get a postal code and its areas",
@@ -455,7 +460,6 @@ def search_postal_codes(
 def get_postal_code(
     code: str,
     db: Session = Depends(get_db),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
 ) -> PostalCodeResponse:
     """Look up a postal code and all administrative areas it covers.
 
@@ -497,8 +501,8 @@ def get_postal_code(
     )
 
 
-@app.get(
-    "/v1/areas/{code}/postal-codes",
+@v1_router.get(
+    "/areas/{code}/postal-codes",
     response_model=AreaPostalCodesResponse,
     tags=["Areas"],
     summary="Get postal codes for an area",
@@ -506,7 +510,6 @@ def get_postal_code(
 def get_area_postal_codes(
     code: str,
     db: Session = Depends(get_db),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
 ) -> AreaPostalCodesResponse:
     """List all postal codes associated with an administrative area.
 
@@ -548,3 +551,8 @@ def get_area_postal_codes(
         postal_codes=postal_codes,
     )
 
+
+# Registered after every /v1 route is defined so the original ordering — and the
+# static-before-dynamic precedence of /areas/autocomplete over /areas/{code} — is
+# preserved exactly.
+app.include_router(v1_router)

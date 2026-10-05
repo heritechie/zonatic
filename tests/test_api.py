@@ -88,7 +88,7 @@ def test_level_keys_are_complete():
 
 def test_autocomplete_basic():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "tanah"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "tanah"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
@@ -102,7 +102,7 @@ def test_autocomplete_basic():
 
 def test_autocomplete_breadcrumb_hierarchy():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Gelora"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Gelora"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
@@ -114,13 +114,13 @@ def test_autocomplete_breadcrumb_hierarchy():
 
 def test_autocomplete_filter_levels():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Jakarta", "levels": "1"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Jakarta", "levels": "1"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
     assert data["results"][0]["level"] == 1
 
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Jakarta", "levels": "3,4"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Jakarta", "levels": "3,4"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 0
@@ -128,13 +128,13 @@ def test_autocomplete_filter_levels():
 
 def test_autocomplete_filter_parent_code():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "3171"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "3171"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
     assert data["results"][0]["code"] == "317101"
 
-    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "99.99"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "Tanah", "parent_code": "99.99"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 0
@@ -142,7 +142,7 @@ def test_autocomplete_filter_parent_code():
 
 def test_autocomplete_limit():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "a", "limit": 2})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "a", "limit": 2}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) <= 2
@@ -150,7 +150,7 @@ def test_autocomplete_limit():
 
 def test_autocomplete_no_results():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "zzzznonexistent"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "zzzznonexistent"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert data["results"] == []
@@ -158,19 +158,19 @@ def test_autocomplete_no_results():
 
 def test_autocomplete_invalid_levels():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "a", "levels": "abc"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "a", "levels": "abc"}, headers=_auth_header())
     assert resp.status_code == 400
 
 
 def test_autocomplete_empty_query():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": ""})
+    resp = client.get("/v1/areas/autocomplete", params={"q": ""}, headers=_auth_header())
     assert resp.status_code == 422
 
 
 def test_autocomplete_case_insensitive():
     _setup_fixtures()
-    resp = client.get("/v1/areas/autocomplete", params={"q": "TANAH"})
+    resp = client.get("/v1/areas/autocomplete", params={"q": "TANAH"}, headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["results"]) == 1
