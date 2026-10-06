@@ -229,6 +229,157 @@ Antarmuka web untuk pengguna non-teknis, bukan pengganti API.
 - menyusun, meninjau, dan mempublikasikan territory;
 - mengelola API key, usage, dan audit log.
 
+## Arah kapabilitas jangka menengah dan panjang
+
+> Status: **product direction, bukan commitment implementasi.**
+> Bagian ini tidak mengikat tanggal atau versi, tidak menambah kontrak API, dan
+> tidak berarti kode, skema, maupun endpoint sudah ada. Isinya hanya menetapkan
+> arah produk dan batasnya agar keputusan capability berikutnya dapat diuji
+> terhadap positioning yang sama.
+
+Zonatic akan berkembang ke dua kelompok capability utama.
+
+1. **Utility APIs** — primitive geografis/lokasi yang disediakan Zonatic.
+2. **Custom APIs** — logika geografis/API yang dapat didefinisikan pengguna di
+   atas primitive Zonatic.
+
+```text
+Zonatic Utility APIs
+        ↓
+Structured geographic data
+        ↓
+Custom Zones / Rules
+        ↓
+User-defined Custom APIs
+```
+
+### Utility API
+
+Core capabilities:
+
+- Administrative Areas;
+- Postal Codes;
+- Administrative Hierarchy;
+- Reverse Geocoding;
+- Geocoding;
+- Distance / spatial utilities;
+- Address Resolution.
+
+Capability ini adalah primitive yang dipakai langsung, maupun menjadi bahan
+baku untuk Custom APIs.
+
+#### Address Resolution
+
+Address Resolution mencakup arah berikut:
+
+- address normalization;
+- address parsing;
+- address → administrative hierarchy;
+- address → postal code;
+- address → coordinate.
+
+#### Location / Document Extraction
+
+Zonatic dapat menyediakan capability untuk mengubah data lokasi tidak
+terstruktur menjadi data geografis terstruktur. Contoh input:
+
+- KTP;
+- SIM;
+- STNK;
+- dokumen lain yang mengandung alamat;
+- foto/label alamat;
+- text address.
+
+Pipeline konseptual:
+
+```text
+document / image / text
+        ↓
+extraction
+        ↓
+address
+        ↓
+address normalization
+        ↓
+geographic resolution
+        ↓
+administrative hierarchy + postal code + coordinate
+```
+
+Zonatic **bukan** diposisikan sebagai generic OCR provider. OCR/document
+extraction adalah implementation capability untuk menghasilkan structured
+geographic information, bukan produk yang berdiri sendiri.
+
+> Zonatic mengubah data terkait lokasi menjadi informasi geografis terstruktur.
+
+#### Vehicle Location Intelligence
+
+Arah capability:
+
+- plate number → vehicle registration region;
+- plate number → administrative registration area.
+
+```text
+B 1234 XYZ
+        ↓
+registration region
+        ↓
+administrative hierarchy
+```
+
+Kapabilitas ini **tidak** menyatakan atau mendesain plate number → current/live
+vehicle location. Real-time vehicle location membutuhkan sumber
+telematics/ANPR/authorized data source dan berada di luar scope capability ini
+untuk saat ini.
+
+#### Spatial Utilities
+
+Arah capability:
+
+- distance between points;
+- point within radius;
+- area relationship;
+- same province/regency/district/village;
+- point → administrative hierarchy.
+
+### Custom APIs
+
+Pengguna dapat mendefinisikan capability di atas utility APIs, terutama:
+
+- Custom Zones;
+- Point-in-zone checks;
+- Geographic Rules;
+- Custom location APIs.
+
+Custom API adalah lapisan yang dimiliki pengguna. Zonatic menyediakan primitive
+geografis yang andal; logika bisnis tetap berada pada pengguna.
+
+### Prinsip produk
+
+Prinsip utama: jangan mengejar sebanyak mungkin API. Capability baru hanya
+dipertimbangkan bila memperkuat core positioning:
+
+> Zonatic menyediakan geographic primitives dan memungkinkan developer
+> mengubahnya menjadi location API mereka sendiri.
+
+Capability generik yang hanya kebetulan berhubungan dengan lokasi tidak
+masuk ke roadmap, antara lain weather, traffic, maps/tiles, routing, generic
+OCR, dan generic document AI. Kemampuan tersebut hanya dipertimbangkan bila
+ada alasan kuat yang tetap konsisten dengan positioning geographic
+infrastructure.
+
+### Prioritas konseptual
+
+Tidak ada ikatan tanggal atau versi. Urutan berikut menunjukkan urutan
+konseptual, bukan jadwal.
+
+| Prioritas | Fokus |
+| --- | --- |
+| CORE | Administrative Areas, Postal Codes, Hierarchy, Reverse Geocoding |
+| NEXT | Address Resolution, Geocoding, Spatial Utilities |
+| LATER | Document → Location extraction, KTP/SIM/STNK location extraction, Plate → registration region |
+| CUSTOM | Zones, Rules, Custom APIs |
+
 ## Prioritas pengembangan
 
 | Tahap | Fokus | Hasil |
@@ -248,6 +399,7 @@ Zonatic tidak mencakup:
 - navigasi/routing dan ETA;
 - manajemen piutang, CRM, dispatch, atau workflow collection;
 - pelacakan lokasi secara kontinu;
+- current/live vehicle location dari nomor plat;
 - keputusan otomatis tentang assignment tanpa aturan dan persetujuan pelanggan.
 
 Integrasi dengan produk-produk tersebut dapat dilakukan melalui API dan webhook.
