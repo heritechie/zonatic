@@ -483,3 +483,59 @@ Operational Intelligence
 ```
 
 Setiap tahap hanya menambahkan infrastructure ketika capability tersebut benar-benar membutuhkan.
+
+## 18. Documentation Architecture
+
+> Status: **keputusan arsitektur. Belum diimplementasikan.**
+> Tidak ada `apps/docs`, tidak ada dependency Nextra, dan tidak ada perubahan DNS
+> atau deployment yang dilakukan atas dasar bagian ini.
+
+### 18.1 Pembagian tanggung jawab domain
+
+| Domain | Tanggung jawab |
+| --- | --- |
+| `zonatic.id` | marketing/product website |
+| `docs.zonatic.id` | developer documentation (future) |
+| `api.zonatic.id` | API runtime, `/v1/*`, `/health`, `/openapi.json`, `/docs` |
+
+`api.zonatic.id/docs` dan `api.zonatic.id/openapi.json` **tetap dipertahankan**
+sebagai Swagger/FastAPI technical reference. Keduanya tidak dipindahkan ke
+`docs.zonatic.id`.
+
+### 18.2 Struktur aplikasi yang direncanakan
+
+```text
+apps/
+├── web/     → zonatic.id
+├── docs/    → docs.zonatic.id  (Nextra, future)
+└── api/     → api.zonatic.id   (FastAPI)
+```
+
+### 18.3 Technology decision
+
+Dokumentasi developer pada `docs.zonatic.id` menggunakan **Nextra**.
+
+Nextra dipilih karena berbasis Next.js + MDX dan sesuai dengan stack Zonatic yang
+sudah menggunakan Next.js/React/pnpm.
+
+Documentation engine custom **tidak** dibangun.
+
+### 18.4 Struktur konten yang direncanakan
+
+- Getting Started;
+- Authentication;
+- Concepts;
+- Guides / Tutorials;
+- API Reference;
+- Examples;
+- Changelog;
+- SDK documentation apabila tersedia.
+
+### 18.5 Catatan implementasi
+
+Bagian ini hanya mencatat keputusan. Implementasi (`apps/docs`, instalasi Nextra,
+DNS `docs.zonatic.id`, dan hosting) merupakan task terpisah dan belum dimulai.
+
+Endpoint reference pada situs documentation sebaiknya digenerate dari
+`api.zonatic.id/openapi.json` agar tidak drift dari contract yang berjalan.
+
