@@ -539,3 +539,229 @@ DNS `docs.zonatic.id`, dan hosting) merupakan task terpisah dan belum dimulai.
 Endpoint reference pada situs documentation sebaiknya digenerate dari
 `api.zonatic.id/openapi.json` agar tidak drift dari contract yang berjalan.
 
+## 19. Request Logging / API Observability
+
+> Status: **product/architecture direction only.**
+> Belum diimplementasikan. Tidak ada migration, tidak ada tabel, tidak ada
+> perubahan API behavior, tidak ada perubahan Console, dan tidak ada perubahan
+> pada metering yang sudah ada. Belum ada commitment pada schema final.
+
+### 19.1 Mengapa usage dan request log dipisahkan
+
+Zonatic pada akhirnya membutuhkan request logging yang terpisah dari usage
+metering. Keduanya menjawab pertanyaan berbeda dan tidak boleh disatukan.
+
+**Usage** adalah aggregate counter:
+
+- dipakai untuk usage overview, quota/limit, dan nantinya billing;
+- saat ini direpresentasikan oleh `tenant_usage` / `api_requests_total`;
+- **tidak boleh dihitung dari `request_logs`.**
+
+**Request logs** adalah individual request event:
+
+- dipakai untuk debugging, developer observability, audit, dan inspeksi
+  pemakaian API;
+- memiliki retention terbatas;
+- bukan source of truth untuk aggregate usage.
+
+Conceptual flow:
+
+```text
+API Request
+    ↓
+authentication
+    ↓
+endpoint execution
+    ↓
+response
+    ├── usage metering → aggregate usage
+    └── request logging → request event
+```
+
+Kedua cabang berjalan berdampingan setelah response terbentuk. Keduanya
+mandiri: kegagalan satu tidak memengaruhi yang lain.
+
+### 19.2 Initial request log data
+
+Rencana metadata minimum:
+
+- `id`;
+- `tenant_id`;
+- `api_key_id`;
+- `request_id`;
+- `timestamp` / `created_at`;
+- HTTP method;
+- request path;
+- status code;
+- `latency_ms`.
+
+Optional untuk tahap berikutnya: `user_agent`.
+
+Secara default **tidak** disimpan:
+
+- raw API key;
+- `Authorization` header;
+- request body;
+- response body atau response payload;
+- sensitive query parameters;
+- PII;
+- IP address.
+
+Request logging harus metadata-only pada tahap awal.
+
+### 19.3 Request ID
+
+`request_id` dipandang sebagai capability penting.
+
+Setiap API request sebaiknya memiliki request identifier yang dapat dipakai
+developer untuk debugging, misalnya melalui:
+
+```http
+X-Request-ID: <uuid>
+```
+
+Request ID yang sama dicatat pada `request_logs`.
+
+Tujuannya agar developer dapat memberikan Request ID ketika melaporkan request
+yang gagal atau bermasalah. Request ID juga membuat log internal Zonatic dapat
+dicocokkan dengan request yang dilaporkan user, tanpa perlu menyimpan payload.
+
+### 19.4 Storage direction
+
+Untuk tahap awal:
+
+- gunakan PostgreSQL yang sama dengan core Zonatic;
+- `request_logs` menjadi tabel terpisah secara logical dari
+  geographic/core tables;
+- belum perlu database logging terpisah;
+- belum perlu ClickHouse, BigQuery, Elasticsearch, Loki, Kafka, atau
+  infrastructure logging khusus.
+
+Initial conceptual indexes:
+
+- `(tenant_id, created_at DESC)`;
+- `(api_key_id, created_at DESC)`;
+- `(created_at DESC)`.
+
+Jangan melakukan premature partitioning.
+
+Jika volume `request_logs` nantinya menjadi sangat besar, storage dan ingestion
+dapat dievaluasi ulang tanpa mengubah API contract.
+
+### 19.5 Reliability
+
+Request logging adalah observability capability dan tidak boleh menjadi
+dependency untuk keberhasilan API request.
+
+Prinsip: success/failure sebuah API request tidak boleh ditentukan oleh
+keberhasilan penulisan request log.
+
+Conceptual flow:
+
+```text
+request
+→ execute
+→ response
+→ best-effort request log
+```
+
+Jika request logging gagal:
+
+- log the logging failure internally;
+- API response tetap mengikuti hasil endpoint.
+
+Untuk implementation nanti, asynchronous/best-effort logging lebih disukai
+daripada membuat setiap API request menunggu `INSERT request_logs`. Ini
+mempertahankan prinsip yang sama dengan metering di
+`apps/api/dependencies.py::_record_api_usage`, di mana kegagalan metering tidak
+pernah mengubah request yang valid menjadi 500.
+
+Jangan menambahkan Kafka atau RabbitMQ hanya untuk logging pada tahap awal.
+
+Jika process mati sebelum asynchronous log tersimpan, kehilangan satu request
+log dapat diterima pada initial implementation.
+
+### 19.6 Retention
+
+Initial direction:
+
+- request logs disimpan sekitar 30 hari;
+- retention dapat dievaluasi kemudian berdasarkan volume, cost, dan developer
+  needs.
+
+Console nanti cukup menampilkan recent request logs terlebih dahulu, bukan
+unlimited history.
+
+Future filters dapat mencakup:
+
+- API key;
+- status;
+- endpoint;
+- date range.
+
+Tidak perlu diimplementasikan sekarang.
+
+### 19.7 HTTP status logging
+
+Conceptually request logs dapat mencatat:
+
+- 2xx;
+- 4xx;
+- 5xx;
+- authentication failures.
+
+Namun unauthorized traffic dapat dievaluasi kembali jika volumenya tinggi, agar
+`request_logs` tidak menjadi tempat penampungan abuse/bot traffic.
+
+Untuk unauthenticated requests:
+
+- `tenant_id` dapat NULL;
+- `api_key_id` dapat NULL.
+
+Untuk authenticated requests:
+
+- `tenant_id` dan `api_key_id` dicatat.
+
+### 19.8 Privacy / security principle
+
+Request logging harus menjadi metadata-only observability layer.
+
+`request_logs` tidak boleh menjadi mekanisme untuk menyimpan request/response
+payload.
+
+IP address juga belum menjadi bagian initial schema, karena kebutuhan
+security/abuse belum cukup untuk membenarkan tambahan data tersebut.
+
+### 19.9 Product direction
+
+Future API Console dapat memiliki:
+
+```text
+API
+├── API Keys
+├── Request Logs
+└── Usage
+```
+
+Namun Request Logs tidak perlu diimplementasikan di Console sekarang.
+
+### 19.10 Architectural principle
+
+Usage dan logs harus tetap dipisahkan:
+
+```text
+tenant_usage
+    = aggregate usage state
+
+request_logs
+    = individual request events
+```
+
+Jangan menggunakan:
+
+```sql
+COUNT(request_logs)
+```
+
+sebagai source of truth untuk usage, karena `request_logs` memiliki retention
+terbatas. Agregat usage yang sudah ada tetap memakai `tenant_usage`.
