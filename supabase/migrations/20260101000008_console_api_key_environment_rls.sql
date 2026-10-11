@@ -75,6 +75,24 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_tenant_env
 -- directly from the browser: profile and workspace rows are provisioned by
 -- `console-api` using the verified Google identity, and key creation always
 -- happens server-side where only the hash is stored.
+--
+-- The policy creation is guarded so the migration chain also applies to a
+-- plain (non-Supabase) PostgreSQL, where the `auth` schema does not exist:
+--
+--   * A top-level `CREATE POLICY ... USING (id = auth.uid())` would abort the
+--     whole chain on vanilla PostgreSQL, because the statement is parsed and
+--     the function resolved before any runtime check could run.
+--   * The guard below checks `to_regprocedure('auth.uid()')`. When it does not
+--     resolve, a NOTICE is raised and the five policies are skipped; when it
+--     does (a Supabase project), they are created via dynamic SQL with exactly
+--     the semantics they had before this guard existed.
+--   * The policy SQL lives inside the guard as string constants, so nothing
+--     referencing `auth.uid()` is parsed outside the guard.
+--   * Row-level security itself is enabled unconditionally. On a database
+--     without policies, RLS-enabled tables fail closed for non-owner roles
+--     (no policy matches, so no rows are visible); the table owner still has
+--     full access, which is how both the public API and `console-api`
+--     connect.
 
 ALTER TABLE users         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants       ENABLE ROW LEVEL SECURITY;
@@ -82,22 +100,39 @@ ALTER TABLE tenant_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenant_usage  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys      ENABLE ROW LEVEL SECURITY;
 
--- A user may read only their own profile row.
+-- Drop any existing definitions first (a no-op where they never existed), so
+-- re-running the migration recreates exactly these five and nothing else.
 DROP POLICY IF EXISTS users_select_own ON users;
+DROP POLICY IF EXISTS tenant_members_select_own ON tenant_members;
+DROP POLICY IF EXISTS tenants_select_member ON tenants;
+DROP POLICY IF EXISTS tenant_usage_select_member ON tenant_usage;
+DROP POLICY IF EXISTS api_keys_select_member ON api_keys;
+
+DO $$
+BEGIN
+    IF to_regprocedure('auth.uid()') IS NULL THEN
+        RAISE NOTICE 'auth.uid() not available; skipping console RLS policies (20260101000008). Row-level security remains enabled with zero policies.';
+        RETURN;
+    END IF;
+
+    -- A user may read only their own profile row.
+    EXECUTE $policy$
 CREATE POLICY users_select_own ON users
     FOR SELECT
-    USING (id = auth.uid());
+    USING (id = auth.uid())
+$policy$;
 
--- A user may read their own memberships. `tenant_members` reads only its own
--- columns, so these policies do not reference each other recursively.
-DROP POLICY IF EXISTS tenant_members_select_own ON tenant_members;
+    -- A user may read their own memberships. `tenant_members` reads only its
+    -- own columns, so these policies do not reference each other recursively.
+    EXECUTE $policy$
 CREATE POLICY tenant_members_select_own ON tenant_members
     FOR SELECT
-    USING (user_id = auth.uid());
+    USING (user_id = auth.uid())
+$policy$;
 
--- The remaining policies resolve the caller's workspaces through
--- `tenant_members`, which is itself restricted to the caller's own rows.
-DROP POLICY IF EXISTS tenants_select_member ON tenants;
+    -- The remaining policies resolve the caller's workspaces through
+    -- `tenant_members`, which is itself restricted to the caller's own rows.
+    EXECUTE $policy$
 CREATE POLICY tenants_select_member ON tenants
     FOR SELECT
     USING (
@@ -107,9 +142,10 @@ CREATE POLICY tenants_select_member ON tenants
             WHERE tm.tenant_id = tenants.id
               AND tm.user_id = auth.uid()
         )
-    );
+    )
+$policy$;
 
-DROP POLICY IF EXISTS tenant_usage_select_member ON tenant_usage;
+    EXECUTE $policy$
 CREATE POLICY tenant_usage_select_member ON tenant_usage
     FOR SELECT
     USING (
@@ -119,11 +155,13 @@ CREATE POLICY tenant_usage_select_member ON tenant_usage
             WHERE tm.tenant_id = tenant_usage.tenant_id
               AND tm.user_id = auth.uid()
         )
-    );
+    )
+$policy$;
 
--- API keys are visible only for workspaces the caller belongs to. This is the
--- table that matters most: it must never expose another workspace's keys.
-DROP POLICY IF EXISTS api_keys_select_member ON api_keys;
+    -- API keys are visible only for workspaces the caller belongs to. This is
+    -- the table that matters most: it must never expose another workspace's
+    -- keys.
+    EXECUTE $policy$
 CREATE POLICY api_keys_select_member ON api_keys
     FOR SELECT
     USING (
@@ -133,4 +171,7 @@ CREATE POLICY api_keys_select_member ON api_keys
             WHERE tm.tenant_id = api_keys.tenant_id
               AND tm.user_id = auth.uid()
         )
-    );
+    )
+$policy$;
+END;
+$$;
