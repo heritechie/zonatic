@@ -5,6 +5,7 @@ import { DataSources } from "@/components/data-sources";
 import { Features } from "@/components/features";
 import { ApiExample } from "@/components/api-example";
 import { UseCases } from "@/components/use-cases";
+import { Pricing } from "@/components/pricing";
 import { FinalCTA } from "@/components/final-cta";
 import { Footer } from "@/components/footer";
 import { getContent, type Locale } from "@/content";
@@ -32,7 +33,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         {content.common.skipToContent}
       </a>
 
-      <Nav content={content} locale={locale} />
+      <Nav content={content} />
 
       <main id="main">
         <Hero content={content} />
@@ -40,6 +41,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <DataSources content={content} />
         <Features content={content} />
         <ApiExample content={content} />
+        <Pricing content={content} />
         <UseCases content={content} />
         <FinalCTA content={content} />
       </main>

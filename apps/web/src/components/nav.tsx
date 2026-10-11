@@ -5,8 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import type { Content, Locale } from "@/content";
+import type { Content } from "@/content";
 
 /**
  * Navbar with logo, navigation links (Fitur, Data, Use Case, Dokumentasi, Harga),
@@ -14,10 +13,8 @@ import type { Content, Locale } from "@/content";
  */
 export function Nav({
   content,
-  locale,
 }: {
   content: Content;
-  locale: Locale;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -49,7 +46,7 @@ export function Nav({
         className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between px-6 lg:px-8"
         aria-label="Primary"
       >
-        <Link href={`/${locale}/`} className="flex items-center">
+        <Link href={`/${content.locale}/`} className="flex items-center">
           <BrandLogo className="h-9 w-auto" priority />
         </Link>
 
@@ -66,11 +63,10 @@ export function Nav({
           ))}
         </ul>
 
-        <div className="hidden lg:flex items-center gap-4">
-          <LanguageSwitcher variant="desktop" currentLocale={locale} />
+<div className="hidden lg:flex items-center gap-4">
           <Link
             href={content.meta.consoleUrl}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+            className="inline-flex items-center justify-rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
           >
             {content.nav.signIn}
           </Link>
@@ -95,7 +91,6 @@ export function Nav({
       <MobileMenu
         open={open}
         content={content}
-        locale={locale}
         onNavigate={() => setOpen(false)}
       />
     </header>
@@ -105,12 +100,10 @@ export function Nav({
 function MobileMenu({
   open,
   content,
-  locale,
   onNavigate,
 }: {
   open: boolean;
   content: Content;
-  locale: Locale;
   onNavigate: () => void;
 }) {
   if (!open) return null;
@@ -134,10 +127,6 @@ function MobileMenu({
           ))}
         </ul>
         <div className="mt-4 pt-4 border-t border-slate-200">
-          <LanguageSwitcher
-            variant="mobile"
-            currentLocale={locale}
-          />
           <Link
             href={content.meta.consoleUrl}
             onClick={onNavigate}

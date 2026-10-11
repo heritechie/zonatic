@@ -28,7 +28,7 @@ export default async function TermsPage({
         {content.common.skipToContent}
       </a>
 
-      <Nav content={content} locale={safeLocale} />
+      <Nav content={content} />
 
       <main id="main">
         <section className="bg-white pt-28 pb-16 sm:pt-36 sm:pb-20 lg:pt-40 lg:pb-24">

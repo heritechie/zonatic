@@ -32,7 +32,7 @@ export default async function AboutPage({
         {content.common.skipToContent}
       </a>
 
-      <Nav content={content} locale={safeLocale} />
+      <Nav content={content} />
 
       <main id="main">
         <section

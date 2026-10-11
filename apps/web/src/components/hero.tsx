@@ -75,20 +75,6 @@ export function Hero({ content }: { content: Content }) {
                 {h.secondaryCta}
               </Link>
             </div>
-
-            {/* Stats row */}
-            <div className="mt-12 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
-              {h.stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <p className="text-3xl font-bold text-emerald-400 sm:text-4xl lg:text-5xl">
-                    {stat.value}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400 uppercase tracking-wide">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Right column — Indonesia map visual */}
@@ -144,6 +130,25 @@ export function Hero({ content }: { content: Content }) {
                 height={941}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Stats row — full width below the two-column content */}
+        <div className="mt-14 lg:mt-20 border-t border-white/10 pt-10 lg:pt-12">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 sm:gap-x-10 lg:gap-x-16">
+            {h.stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col items-center text-center"
+              >
+                <p className="text-3xl font-bold text-emerald-400 sm:text-4xl lg:text-5xl">
+                  {stat.value}
+                </p>
+                <p className="mt-2 max-w-[12rem] text-sm leading-tight text-slate-400 uppercase tracking-wide">
+                  {stat.label}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

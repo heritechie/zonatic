@@ -48,7 +48,7 @@ export const id: Content = {
       { label: "Fitur", href: "#features" },
       { label: "Data", href: "#data-sources" },
       { label: "Use Case", href: "#use-cases" },
-      { label: "Dokumentasi", href: "/docs" },
+      { label: "Dokumentasi", href: "#api-example" },
       { label: "Harga", href: "#pricing" },
     ],
   },
@@ -86,25 +86,28 @@ export const id: Content = {
       {
         title: "Data Wilayah Administratif",
         description:
-          "Batas wilayah provinsi, kabupaten/kota, kecamatan, dan kelurahan/desa dari data resmi Kementerian Dalam Negeri (Kemendagri) melalui region-id.",
+          "Batas wilayah provinsi, kabupaten/kota, kecamatan, dan kelurahan/desa dari data resmi Kementerian Dalam Negeri (Kemendagri).",
         iconKey: "map",
         verified: true,
       },
       {
         title: "Data Kode Pos Indonesia",
         description:
-          "Kode pos Indonesia dari Pos Indonesia yang dipetakan ke wilayah administratif melalui postal-code-id.",
+          "Kode pos Indonesia dari Pos Indonesia yang dipetakan ke wilayah administratif.",
         iconKey: "mail",
         verified: true,
       },
       {
-        title: "Informasi Geografis",
+        title: "Data Geospasial",
         description:
-          "Koordinat batas wilayah, titik tengah wilayah, dan metadata geografis untuk mendukung reverse geocoding dan analisis spasial.",
+          "Data geospasial Indonesia yang bersumber dari Badan Informasi Geospasial (BIG).",
         iconKey: "globe",
-        verified: true,
+        verified: false,
       },
     ],
+    labels: {
+      verified: "Sumber terverifikasi",
+    },
   },
   features: {
     eyebrow: "FITUR UTAMA",
@@ -133,7 +136,7 @@ export const id: Content = {
       {
         title: "Developer Friendly",
         description:
-          "REST API dengan dokumentasi OpenAPI, SDK untuk berbagai bahasa, response time < 100ms, dan uptime 99.9%.",
+          "REST API dengan autentikasi menggunakan API key dan dokumentasi OpenAPI yang tersedia di setiap endpoint.",
         iconKey: "code",
       },
     ],
@@ -146,34 +149,76 @@ export const id: Content = {
     tabs: [
       {
         label: "cURL",
-        code: `curl -H "Authorization: Bearer ZN_API_KEY" \\
+        code: `curl -H "Authorization: Bearer $ZONATIC_API_KEY" \\
   "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81"`,
       },
       {
-        label: "JavaScript",
-        code: `const response = await fetch(
-  "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81",
-  {
-    headers: {
-      "Authorization": "Bearer ZN_API_KEY",
-      "Content-Type": "application/json"
-    }
-  }
-);
+        label: "Node.js",
+        code: `// Set environment variable first:
+//   export ZONATIC_API_KEY="your_api_key"
+const url = "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81";
+
+const response = await fetch(url, {
+  headers: {
+    "Authorization": \`Bearer \${process.env.ZONATIC_API_KEY}\`,
+  },
+});
+
 const data = await response.json();`,
       },
       {
-        label: "Python",
-        code: `import requests
+        label: "PHP",
+        code: `<?php
+// Set environment variable first:
+//   export ZONATIC_API_KEY="your_api_key"
 
-response = requests.get(
-    "https://api.zonatic.id/v1/reverse-geocode",
-    params={"latitude": -6.19, "longitude": 106.81},
-    headers={"Authorization": "Bearer ZN_API_KEY"}
+$url = "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81";
+
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Authorization: Bearer " . getenv("ZONATIC_API_KEY"),
+]);
+$response = curl_exec($ch);
+curl_close($ch);
+
+$data = json_decode($response, true);`,
+      },
+      {
+        label: "Go",
+        code: `package main
+
+import (
+\t"encoding/json"
+\t"fmt"
+\t"io"
+\t"net/http"
+\t"os"
 )
-data = response.json()`,
+
+// Set environment variable first:
+//   export ZONATIC_API_KEY="your_api_key"
+
+func main() {
+\turl := "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81"
+\treq, _ := http.NewRequest("GET", url, nil)
+\treq.Header.Set("Authorization", "Bearer "+os.Getenv("ZONATIC_API_KEY"))
+
+\tresp, err := http.DefaultClient.Do(req)
+\tif err != nil {
+\t\tpanic(err)
+\t}
+\tdefer resp.Body.Close()
+
+\tbody, _ := io.ReadAll(resp.Body)
+\tvar data map[string]interface{}
+\tjson.Unmarshal(body, &data)
+\tfmt.Println(data)
+}`,
       },
     ],
+    envNote: "Atur environment variable ZONATIC_API_KEY sebelum menjalankan contoh di atas.",
+    previewNote: "Preview singkat — response lengkap berisi lebih banyak field.",
     response: {
       label: "Response",
       json: `{
@@ -181,32 +226,14 @@ data = response.json()`,
   "longitude": 106.81,
   "matched": true,
   "address": {
-    "province": {
-      "code": "31",
-      "name": "DKI Jakarta",
-      "level": 1
-    },
-    "regency_or_city": {
-      "code": "3171",
-      "name": "Kota Administrasi Jakarta Pusat",
-      "level": 2
-    },
-    "district": {
-      "code": "317101",
-      "name": "Kecamatan Gambir",
-      "level": 3
-    },
-    "village_or_ward": {
-      "code": "3171011001",
-      "name": "Kelurahan Gambir",
-      "level": 4
-    }
+    "province": { "code": "31", "name": "DKI Jakarta", "level": 1 },
+    "regency_or_city": { "code": "3171", "name": "Kota Administrasi Jakarta Pusat", "level": 2 },
+    "district": { "code": "317101", "name": "Kecamatan Gambir", "level": 3 },
+    "village_or_ward": { "code": "3171011001", "name": "Kelurahan Gambir", "level": 4 }
   },
   "areas": [
-    {"code": "31", "name": "DKI Jakarta", "level": "province"},
-    {"code": "3171", "name": "Kota Administrasi Jakarta Pusat", "level": "regency"},
-    {"code": "317101", "name": "Kecamatan Gambir", "level": "district"},
-    {"code": "3171011001", "name": "Kelurahan Gambir", "level": "village"}
+    { "code": "31", "name": "DKI Jakarta", "level": 1 },
+    ...
   ]
 }`,
     },
@@ -253,6 +280,46 @@ data = response.json()`,
     primaryCta: "Mulai Integrasi",
     secondaryCta: "Lihat Dokumentasi",
   },
+  pricing: {
+    eyebrow: "HARGA & PEMBAYARAN",
+    headline: "Pakai API, bayar sesuai pemakaian.",
+    description:
+      "Isi saldo dalam rupiah. Setiap request dipotong dari saldo sesuai tarif API yang digunakan.",
+    freeQuotaTitle: "10.000 request gratis setiap bulan",
+    freeQuotaDescription: "Kuota gratis berlaku gabungan untuk seluruh endpoint Zonatic.",
+    volumeNote:
+      "Butuh request dalam jumlah besar? Hubungi kami untuk membahas harga khusus.",
+    tiers: [
+      {
+        name: "Reverse Geocoding",
+        priceLabel: "Rp15.000 / 1.000 request",
+        priceNote: "Setara Rp15 per request.",
+        description: "Ubah koordinat menjadi informasi wilayah administratif.",
+      },
+      {
+        name: "API Utilitas",
+        priceLabel: "Rp3.000 / 1.000 request",
+        priceNote: "Setara Rp3 per request.",
+        description: "Untuk pencarian wilayah dan kode pos Indonesia.",
+      },
+    ],
+    advantages: [
+      {
+        title: "Tanpa biaya bulanan",
+        description: "Isi saldo saat dibutuhkan.",
+      },
+      {
+        title: "Harga dalam rupiah",
+        description: "Tidak perlu menghitung biaya API dalam dolar.",
+      },
+      {
+        title: "Pantau pemakaian",
+        description: "Lihat jumlah request dan sisa saldo.",
+      },
+    ],
+    cta: "Lihat Dokumentasi",
+    ctaHref: "#api-example",
+  },
   footer: {
     tagline: "Location API untuk Indonesia.",
     copyrightYear: "2026",
@@ -270,7 +337,7 @@ data = response.json()`,
       {
         title: "Developer",
         links: [
-          { label: "Dokumentasi API", href: "/docs" },
+          { label: "Dokumentasi API", href: "#api-example" },
           { label: "API Reference" },
           { label: "Changelog" },
         ],

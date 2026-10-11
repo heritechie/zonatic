@@ -80,6 +80,12 @@ export type DataSources = {
   headline: string;
   description: string;
   sources: DataSource[];
+  /**
+   * Status labels shown on each data source card.
+   */
+  labels: {
+    verified: string;
+  };
 };
 
 /**
@@ -116,10 +122,74 @@ export type ApiExample = {
   headline: string;
   description: string;
   tabs: ApiExampleTab[];
+  /**
+   * Short note shown under the code panel about setting the API key
+   * environment variable before running the examples.
+   */
+  envNote: string;
+  /**
+   * Short note shown under the response panel indicating that the
+   * displayed JSON is a preview, not the full response.
+   */
+  previewNote: string;
   response: {
     label: string;
     json: string;
   };
+};
+
+export type PricingTier = {
+  /**
+   * Display name of the API category, e.g. "Reverse Geocoding".
+   */
+  name: string;
+  /**
+   * Primary price label, e.g. "Rp15.000 / 1.000 request".
+   * Displayed as the most prominent price information on the card.
+   */
+  priceLabel: string;
+  /**
+   * Secondary per-request note, e.g. "Setara Rp15 per request."
+   * Displayed as a smaller secondary line under the primary price.
+   */
+  priceNote: string;
+  /**
+   * Short description of what this tier covers.
+   */
+  description: string;
+};
+
+export type PricingAdvantage = {
+  title: string;
+  description: string;
+};
+
+export type Pricing = {
+  eyebrow: string;
+  headline: string;
+  description: string;
+  /**
+   * Free quota heading, e.g. "10.000 request gratis setiap bulan".
+   */
+  freeQuotaTitle: string;
+  /**
+   * Free quota caption, e.g. "Kuota gratis untuk mencoba API Zonatic."
+   */
+  freeQuotaDescription: string;
+  /**
+   * Caption shown under the paid tiers that mentions high-volume pricing.
+   */
+  volumeNote: string;
+  tiers: PricingTier[];
+  advantages: PricingAdvantage[];
+  /**
+   * Main CTA label, e.g. "Lihat Dokumentasi".
+   */
+  cta: string;
+  /**
+   * Main CTA destination. Only routes that already work should be passed.
+   */
+  ctaHref: string;
 };
 
 export type Content = {
@@ -219,6 +289,7 @@ common: {
     primaryCta: string;
     secondaryCta: string;
   };
+  pricing: Pricing;
   footer: {
     tagline: string;
     /**

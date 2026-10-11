@@ -43,14 +43,14 @@ export function FinalCTA({ content }: { content: Content }) {
           </p>
           <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row">
             <Link
-              href="/docs"
+              href={content.meta.consoleUrl}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-navy-900 shadow-sm hover:bg-slate-50 transition-colors"
             >
               {c.primaryCta}
               <span aria-hidden="true">→</span>
             </Link>
             <Link
-              href="#data-sources"
+              href="#api-example"
               className="inline-flex items-center justify-center gap-2 rounded-md border border-emerald-300/60 bg-transparent px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700/60 transition-colors"
             >
               {c.secondaryCta}
