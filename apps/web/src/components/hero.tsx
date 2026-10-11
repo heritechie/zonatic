@@ -3,22 +3,14 @@ import { ArrowRight } from "lucide-react";
 import type { Content } from "@/content";
 
 /**
- * Hero: copy on the left, one large flat illustration on the right.
+ * Hero: navy background with Indonesia map, left copy + CTAs, right map visual.
  *
- *   Left  | eyebrow, headline (emerald accent on the closing phrase),
- *         | supporting copy, primary + secondary CTA, then a
- *         | plain-text micro-row restating the product shape:
- *         | data -> zona -> rules/API.
+ * Structure:
+ *   - Navy background with Indonesia map illustration
+ *   - Left: eyebrow, headline (emerald accent), description, primary + secondary CTA, stats row
+ *   - Right: Indonesia map visual
  *
- *   Right | `/assets/zonatic_hero_flat_green.webp`, the page's primary
- *         | visual. No cards, badges or inputs float on top of it: the
- *         | artwork already carries its own labels, and overlaying
- *         | would duplicate them and compete with the headline.
- *
- * Split is 45/55 on lg+ so the illustration anchors the right half without
- * outweighing the copy. On lg the artwork is allowed to bleed past the
- * container padding (`-mr-*`) and grow slightly taller than the text column,
- * which keeps the section from reading as two rigid boxes.
+ * Split is 50/50 on lg+ with the map on the right.
  */
 export function Hero({ content }: { content: Content }) {
   const h = content.hero;
@@ -26,14 +18,26 @@ export function Hero({ content }: { content: Content }) {
   return (
     <section
       id="hero"
-      className="relative overflow-hidden bg-white pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-44 lg:pb-24"
+      className="relative overflow-hidden bg-navy-900 text-white pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-44 lg:pb-24"
       aria-labelledby="hero-headline"
     >
+      {/* Topographic pattern background */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-5"
+        style={{
+          backgroundImage: "url('/images/landing/topographic-pattern.webp')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-[45fr_55fr] lg:gap-8 xl:gap-12">
+        <div className="grid items-center gap-12 lg:grid-cols-[0.42fr_0.58fr] lg:gap-8 xl:gap-12">
           {/* Left column — copy + CTAs */}
           <div className="max-w-xl lg:max-w-none">
-            <p className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            <p className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 bg-white/10 text-emerald-300 border-emerald-800">
               <span
                 aria-hidden="true"
                 className="h-1.5 w-1.5 rounded-full bg-emerald-500"
@@ -43,13 +47,13 @@ export function Hero({ content }: { content: Content }) {
 
             <h1
               id="hero-headline"
-              className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-navy-900 sm:text-[2.5rem] lg:text-[2.75rem]"
+              className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-[2.5rem] lg:text-[3rem]"
             >
               {h.headline}{" "}
-              <span className="text-emerald-700">{h.headlineHighlight}</span>
+              <span className="text-emerald-400">{h.headlineHighlight}</span>
             </h1>
 
-            <p className="mt-6 text-lg leading-8 text-navy-600 sm:text-xl">
+            <p className="mt-6 text-lg leading-8 text-slate-300 sm:text-xl">
               {h.description}
             </p>
 
@@ -65,65 +69,84 @@ export function Hero({ content }: { content: Content }) {
                 />
               </Link>
               <Link
-                href="#api"
-                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-6 py-3 text-[0.95rem] font-semibold text-navy-800 transition-colors hover:bg-slate-50"
+                href="#data-sources"
+                className="inline-flex items-center justify-center rounded-md border border-emerald-300/60 bg-transparent px-6 py-3 text-[0.95rem] font-semibold text-white hover:bg-emerald-700/60 transition-colors"
               >
                 {h.secondaryCta}
               </Link>
             </div>
 
-            <MicroRow items={h.microRow} />
+            {/* Stats row */}
+            <div className="mt-12 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+              {h.stats.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className="text-3xl font-bold text-emerald-400 sm:text-4xl lg:text-5xl">
+                    {stat.value}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-400 uppercase tracking-wide">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Right column — the hero illustration.
-              Allowed to run past the container's right padding and to grow
-              a little taller than the copy column; the section clips it, so
-              the bleed can never create horizontal overflow. */}
-          <div className="lg:-mr-10 xl:-mr-20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/assets/zonatic_hero_flat_green.webp"
-              alt={h.imageAlt}
-              className="h-auto w-full select-none"
-              loading="eager"
-              decoding="async"
-              width={1672}
-              height={941}
-            />
+          {/* Right column — Indonesia map visual */}
+          <div className="relative">
+            <div
+              className="relative"
+              style={{
+                // Horizontal fade: transparent at edges, opaque in middle
+                WebkitMaskImage: `
+                  linear-gradient(
+                    to right,
+                    transparent 0%,
+                    black 15%,
+                    black 85%,
+                    transparent 100%
+                  ),
+                  linear-gradient(
+                    to bottom,
+                    transparent 0%,
+                    black 10%,
+                    black 90%,
+                    transparent 100%
+                  )
+                `,
+                maskImage: `
+                  linear-gradient(
+                    to right,
+                    transparent 0%,
+                    black 15%,
+                    black 85%,
+                    transparent 100%
+                  ),
+                  linear-gradient(
+                    to bottom,
+                    transparent 0%,
+                    black 10%,
+                    black 90%,
+                    transparent 100%
+                  )
+                `,
+                WebkitMaskComposite: "source-in",
+                maskComposite: "intersect",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/landing/hero-indonesia-map.webp"
+                alt={h.imageAlt}
+                className="h-auto w-full max-w-none select-none"
+                loading="eager"
+                decoding="async"
+                width={1672}
+                height={941}
+              />
+            </div>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * Three capability markers under the CTAs.
- *
- * Deliberately not cards: no border, no background, no icons. They restate
- * the product shape in one line so the fold still explains what Zonatic is
- * without adding three more boxes to the page.
- */
-function MicroRow({ items }: { items: string[] }) {
-  return (
-    <ul className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-200 pt-6">
-      {items.map((item, i) => (
-        <li key={item} className="flex items-center gap-6">
-          <span className="flex items-center gap-2 text-[0.8125rem] font-medium text-navy-600">
-            <span
-              aria-hidden="true"
-              className="h-1 w-1 rounded-full bg-emerald-600"
-            />
-            {item}
-          </span>
-          {i < items.length - 1 ? (
-            <span
-              aria-hidden="true"
-              className="hidden h-3 w-px bg-slate-200 sm:block"
-            />
-          ) : null}
-        </li>
-      ))}
-    </ul>
   );
 }

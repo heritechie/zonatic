@@ -81,36 +81,4 @@ describe("Google prices live only in google.json", () => {
     expect(filesContaining(placesSku)).toEqual([]);
     expect(googleData.products.places_text_search_pro.sku).toBe("4FDA-34B1-A910");
   });
-
-  it("keeps the Places free cap out of the estimator component", () => {
-    const components = productionTs.filter((f) =>
-      f.includes("cost-estimator-section"),
-    );
-    expect(components.length).toBeGreaterThan(0);
-    for (const file of components) {
-      expect(readFileSync(file, "utf-8")).not.toMatch(/(?<![\d.])5_?000(?![\d])/);
-    }
-  });
-});
-
-describe("the cost estimator component holds no pricing at all", () => {
-  const component = readFileSync(
-    join(SRC_ROOT, "components", "cost-estimator-section.tsx"),
-    "utf-8",
-  );
-
-  it("does not import the pricing data files directly", () => {
-    expect(component).not.toMatch(/data\/(google|zonatic|fx)\.json/);
-  });
-
-  it("does not import the pricing internals", () => {
-    // Only the barrel: no reaching into calculator/validate internals.
-    expect(component).not.toMatch(/@\/lib\/location-pricing\/(?!$)/);
-    expect(component).not.toMatch(/pricePer1000|\.tiers\b|monthlyPrice/);
-  });
-
-  it("takes its product labels from the pricing data", () => {
-    // No hardcoded product catalogue in the view.
-    expect(component).not.toMatch(/Places API|Geocoding API|Autocomplete/);
-  });
 });

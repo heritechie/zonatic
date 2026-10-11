@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 /**
- * Localize path-only hrefs (e.g. `/about`) by prefixing the current locale,
+ * Localize path-only hrefs (e.g. `/docs`) by prefixing the current locale,
  * so that links work from any locale page. External links, `mailto:` links,
  * hash links, and missing hrefs (capability areas with no page yet) are
  * returned unchanged.
@@ -21,13 +21,7 @@ function withLocale(href: string | undefined, locale: Locale): string {
 
 /**
  * Commercial product footer: brand block on the left, three navigation groups
- * on the right, copyright underneath.
- *
- * Only entries with a real destination render as links. Products and
- * Developer items have no pages yet, so they render as plain labels rather
- * than links to routes that do not exist. Legal pages are linked once, from
- * the Company group; the bottom bar carries only the copyright so nothing is
- * duplicated.
+ * on the right, language selector, copyright underneath.
  */
 export function Footer({
   content,
@@ -74,7 +68,7 @@ export function Footer({
                   {column.title}
                 </h3>
                 <ul className="mt-4 space-y-2.5">
-                  {column.links.map((link) => (
+                  {column.links.map((link: import("@/content").FooterLink) => (
                     <li key={link.label}>
                       {link.href ? (
                         link.href.startsWith("mailto:") ? (
@@ -112,4 +106,4 @@ export function Footer({
       </div>
     </footer>
   );
-}  
+}

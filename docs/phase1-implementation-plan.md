@@ -4,7 +4,7 @@
 
 ### Current Architecture
 
-Zonatic is a Python/FastAPI backend (`app/`) backed by PostgreSQL 16 + PostGIS 3.4. Docker Compose orchestrates all services through a Caddy reverse proxy. The backend is a single-file application (`app/main.py`, 346 lines) with all route handlers defined inline.
+Zonatic is a Python/FastAPI backend (`apps/api/`) backed by PostgreSQL 16 + PostGIS 3.4. Docker Compose orchestrates all services through a Caddy reverse proxy. The backend is a single-file application (`apps/api/main.py`, 346 lines) with all route handlers defined inline.
 
 ### Existing Backend Patterns
 
@@ -12,9 +12,9 @@ Zonatic is a Python/FastAPI backend (`app/`) backed by PostgreSQL 16 + PostGIS 3
 |---------|----------------------|
 | Database access | Raw SQL via `sqlalchemy.text()` with parameterized queries. `get_db()` dependency injects a `Session`. |
 | Error handling | `HTTPException` with status codes and Indonesian-language `detail` strings. No structured error envelope. |
-| Schemas | Pydantic `BaseModel` response models in `app/schemas.py`. |
-| Models | SQLAlchemy ORM in `app/models.py`: `AdministrativeArea`, `PostalCode`, `PostalCodeArea`. |
-| Config | `pydantic-settings` in `app/config.py`: `DATABASE_URL`, `APP_ENV`. |
+| Schemas | Pydantic `BaseModel` response models in `apps/api/schemas.py`. |
+| Models | SQLAlchemy ORM in `apps/api/models.py`: `AdministrativeArea`, `PostalCode`, `PostalCodeArea`. |
+| Config | `pydantic-settings` in `apps/api/config.py`: `DATABASE_URL`, `APP_ENV`. |
 | Tests | FastAPI `TestClient` against real DB in `tests/test_api.py` (21 tests, 257 lines). |
 
 ### Existing Dependencies
@@ -33,8 +33,8 @@ All Phase 1 needs are already in `requirements.txt`: FastAPI, uvicorn, SQLAlchem
 |-----------|--------|----------------|
 | `administrative_areas` table | Exists with `geometry NOT NULL` and `ST_IsValid` CHECK | See §3a for analysis |
 | `import_runs` / `administrative_areas_staging` | Exist for GeoJSON import pipeline | **Not reused.** region-id importer uses a different, simpler path. |
-| GeoJSON importer (`app/importers/`) | Exists, handles Polygon/MultiPolygon GeoJSON | Not modified; region-id importer is separate |
-| Existing endpoints (reverse geocode, autocomplete, postal codes) | All in `app/main.py` | **Not modified** in Phase 1 |
+| GeoJSON importer (`apps/api/importers/`) | Exists, handles Polygon/MultiPolygon GeoJSON | Not modified; region-id importer is separate |
+| Existing endpoints (reverse geocode, autocomplete, postal codes) | All in `apps/api/main.py` | **Not modified** in Phase 1 |
 | Test suite (`tests/test_api.py`) | 21 tests, uses dot-separated codes | Test data updated to canonical codes; existing tests preserved |
 
 ---
@@ -56,8 +56,8 @@ The table was built as a **spatial boundary table**:
 | `CHECK (ST_IsValid(geometry))` | `001_schema.sql:13` |
 | GiST spatial index on geometry | `001_schema.sql:19` |
 | Sample data comment: `'Ganti dengan data batas resmi saat proses import'` | `002_sample_data.sql:2` |
-| The only spatial consumer is `reverse_geocode` via `ST_Covers` | `app/main.py:94` |
-| The existing GeoJSON importer always provides geometry | `app/importers/repository.py:129` |
+| The only spatial consumer is `reverse_geocode` via `ST_Covers` | `apps/api/main.py:94` |
+| The existing GeoJSON importer always provides geometry | `apps/api/importers/repository.py:129` |
 
 **Analysis of documentation intent:**
 
@@ -85,7 +85,7 @@ The MVP document (§8) also lists "Administrative boundary / polygon processing"
 | GiST index | Indexes skip NULL values. **Unaffected.** |
 | Postal code joins | Join on `id`, not geometry. **Unaffected.** |
 
-**SQLAlchemy model change**: `app/models.py` — make `geometry` column accept `None`:
+**SQLAlchemy model change**: `apps/api/models.py` — make `geometry` column accept `None`:
 
 ```python
 geometry: Mapped[object | None] = mapped_column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
@@ -106,7 +106,7 @@ ALTER TABLE administrative_areas ADD CONSTRAINT administrative_areas_geometry_va
 
 ### 3c. Add new area endpoints
 
-**Why**: `GET /v1/areas/{code}` and `GET /v1/areas/search` are the Phase 1 deliverables. These are new routes added to `app/main.py`.
+**Why**: `GET /v1/areas/{code}` and `GET /v1/areas/search` are the Phase 1 deliverables. These are new routes added to `apps/api/main.py`.
 
 ### 3d. Add structured error response
 
@@ -116,13 +116,13 @@ ALTER TABLE administrative_areas ADD CONSTRAINT administrative_areas_geometry_va
 
 **Why**: Existing `002_sample_data.sql` uses dot-separated codes (`31.71`, `31.71.01`). The canonical format is continuous numeric (`3171`, `317101`). All Phase 1 endpoints and tests must use canonical codes. The existing sample data, example GeoJSON, postal code seed data, and test fixtures all need updating.
 
-### 3f. Add `app/dependencies.py` for API key validation
+### 3f. Add `apps/api/dependencies.py` for API key validation
 
 **Why**: Authentication must be a FastAPI dependency injected into the new endpoints.
 
 ### NOT changed in Phase 1
 
-- `app/main.py` route structure (existing routes stay inline; new routes added alongside)
+- `apps/api/main.py` route structure (existing routes stay inline; new routes added alongside)
 - Reverse geocode endpoint
 - Postal code endpoints
 - Existing autocomplete endpoint
@@ -194,7 +194,7 @@ Stored as integers in the database. Mapped to strings at the API boundary.
 ### Verified Source
 
 **Repository**: `https://github.com/lokabisa-oss/region-id`  
-**Latest release**: v1.0.1 (12 Jan 2026)
+**Latest release**: v1.0.2 (10 Oct 2026)
 
 ### Verified Release Assets
 
@@ -286,9 +286,10 @@ Report: total processed, inserted, updated
 ### CLI Interface
 
 ```bash
-python -m app.importers.cli_region_id import \
-  --dir /path/to/region-id-1.0.1 \
-  --version 1.0.1 \
+python -m apps.api.importers.cli_region_id import \
+  --dir /path/to/region-id-1.0.2 \
+  --version 1.0.2 \
+  --source-ref bd497bad4e2a4fe2b1dd85706179fe931d9b8cb9 \
   --dry-run
 ```
 
@@ -308,7 +309,7 @@ Phase 1 implements **validation only**: verify an incoming API key, resolve its 
 
 ### Dependency
 
-`app/dependencies.py` — `get_current_tenant`:
+`apps/api/dependencies.py` — `get_current_tenant`:
 
 ```python
 async def get_current_tenant(
@@ -354,7 +355,7 @@ SHA-256 via PostgreSQL's `sha256()` function for seed data, and Python's `hashli
 
 ### `GET /v1/areas/{code}`
 
-**Added to `app/main.py`** (alongside existing routes, not replacing them).
+**Added to `apps/api/main.py`** (alongside existing routes, not replacing them).
 
 **Behavior**:
 
@@ -390,7 +391,7 @@ SHA-256 via PostgreSQL's `sha256()` function for seed data, and Python's `hashli
 
 ### `GET /v1/areas/search`
 
-**Added to `app/main.py`** (alongside existing routes).
+**Added to `apps/api/main.py`** (alongside existing routes).
 
 **Query parameters**:
 
@@ -543,7 +544,7 @@ FastAPI auto-generates OpenAPI from route decorators and Pydantic models. The Sc
 | `AreaSearchMeta` | Nested in search response |
 | `ErrorResponse` | All error responses |
 
-**Error handler**: Register a global `HTTPException` handler in `app/main.py` that maps exceptions to the structured `{ "error": { "code": "...", "message": "..." } }` format. Custom exception classes in `app/exceptions.py` carry both error code and HTTP status.
+**Error handler**: Register a global `HTTPException` handler in `apps/api/main.py` that maps exceptions to the structured `{ "error": { "code": "...", "message": "..." } }` format. Custom exception classes in `apps/api/exceptions.py` carry both error code and HTTP status.
 
 ---
 
@@ -572,27 +573,27 @@ FastAPI auto-generates OpenAPI from route decorators and Pydantic models. The Sc
    → Add tenants + api_keys tables (005_phase1.sql)
    → Update sample data to canonical codes (002_sample_data.sql)
    → Update postal code seed data references (004_postal_codes.sql)
-   → Update SQLAlchemy models (app/models.py)
+   → Update SQLAlchemy models (apps/api/models.py)
 
 3. Structured error handling
-   → app/exceptions.py — exception classes with code + status
-   → Global exception handler in app/main.py
+   → apps/api/exceptions.py — exception classes with code + status
+   → Global exception handler in apps/api/main.py
 
 4. API key validation
-   → app/dependencies.py — get_current_tenant dependency
+   → apps/api/dependencies.py — get_current_tenant dependency
    → Seed test API key in 005_phase1.sql
 
 5. region-id importer
-   → app/importers/region_id.py — CSV reader, validation, upsert
-   → app/importers/cli_region_id.py — CLI entry point
+   → apps/api/importers/region_id.py — CSV reader, validation, upsert
+   → apps/api/importers/cli_region_id.py — CLI entry point
 
 6. GET /v1/areas/{code}
-   → Pydantic schemas in app/schemas.py
-   → Route handler in app/main.py
+   → Pydantic schemas in apps/api/schemas.py
+   → Route handler in apps/api/main.py
    → Breadcrumb builder
 
 7. GET /v1/areas/search
-   → Route handler in app/main.py
+   → Route handler in apps/api/main.py
    → Parameter validation
    → Search query builder
 
@@ -620,7 +621,7 @@ The following are **NOT** part of this plan:
 
 | Item | Reason |
 |------|--------|
-| Moving existing routes to `app/routers/` | No dependency from Phase 1. Existing routes stay in `main.py`. |
+| Moving existing routes to `apps/api/routers/` | No dependency from Phase 1. Existing routes stay in `main.py`. |
 | Reverse geocode changes | Not part of Phase 1. |
 | Postal code changes | Not part of Phase 1. |
 | Console application changes | Phase 1 is backend API only. |

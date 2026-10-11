@@ -1,10 +1,10 @@
 import { Nav } from "@/components/nav";
 import { Hero } from "@/components/hero";
-import { DataToIntelligence } from "@/components/data-to-intel";
-import { Zonas } from "@/components/zonas";
-import { ApiSection } from "@/components/api-section";
+import { Problem } from "@/components/problem";
+import { DataSources } from "@/components/data-sources";
+import { Features } from "@/components/features";
+import { ApiExample } from "@/components/api-example";
 import { UseCases } from "@/components/use-cases";
-import { CostEstimatorSection } from "@/components/cost-estimator-section";
 import { FinalCTA } from "@/components/final-cta";
 import { Footer } from "@/components/footer";
 import { getContent, type Locale } from "@/content";
@@ -17,12 +17,8 @@ import { getContent, type Locale } from "@/content";
  *   - `/`      (Indonesian default, served by `app/(default)/page.tsx`)
  *   - `/id/`   and `/en/`  (served by `app/[locale]/page.tsx`)
  *
- * Section order follows the product argument, so a first-time visitor
- * understands the model in one pass:
- *   hero -> location data -> zonas -> API + rules -> use cases ->
- *   location API cost -> CTA.
- *
- * That is: DATA LOCATION -> ZONA -> RULE/API -> KEPUTUSAN APLIKASI.
+ * Section order follows the product argument:
+ *   hero -> problem -> data sources -> features -> api example -> use cases -> final CTA.
  */
 export function HomePage({ locale }: { locale: Locale }) {
   const content = getContent(locale);
@@ -40,11 +36,11 @@ export function HomePage({ locale }: { locale: Locale }) {
 
       <main id="main">
         <Hero content={content} />
-        <DataToIntelligence content={content} />
-        <Zonas content={content} />
-        <ApiSection content={content} />
+        <Problem content={content} />
+        <DataSources content={content} />
+        <Features content={content} />
+        <ApiExample content={content} />
         <UseCases content={content} />
-        <CostEstimatorSection content={content} />
         <FinalCTA content={content} />
       </main>
 

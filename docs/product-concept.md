@@ -66,7 +66,7 @@ GET /v1/areas/autocomplete?q=tanah%20abang&levels=3,4&limit=10
 {
   "results": [
     {
-      "code": "31.71.01",
+      "code": "317101",
       "name": "Kecamatan Tanah Abang",
       "level": 3,
       "breadcrumb": "DKI Jakarta > Kota Administrasi Jakarta Pusat > Tanah Abang"
@@ -84,7 +84,7 @@ Mencari hubungan antara kode pos dan wilayah administratif.
 ```http
 GET /v1/postal-codes/10270
 GET /v1/postal-codes/search?q=gelora
-GET /v1/areas/31.71.01.1001/postal-codes
+GET /v1/areas/3171011001/postal-codes
 ```
 
 Kode pos adalah data referensi terpisah, bukan level administratif kelima. Satu kode pos dapat berhubungan dengan beberapa area; karena itu data dimodelkan secara many-to-many dan diberi sumber serta versi.

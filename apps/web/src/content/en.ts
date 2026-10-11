@@ -10,9 +10,9 @@ export const en: Content = {
   locale: "en",
   htmlLang: "en",
   meta: {
-    title: "Zonatic — Location Intelligence Infrastructure for Indonesia",
+    title: "Zonatic — Location API for Indonesia",
     description:
-      "Understand location context in Indonesia, define zonas, and use geographic data directly in your application.",
+      "Access Indonesian administrative boundaries, postal codes, and location data through a single API. Fast, accurate, and ready to use.",
     ogLocale: "en_ID",
     siteUrl: "https://www.zonatic.id",
     consoleUrl: "https://console.zonatic.id",
@@ -20,8 +20,8 @@ export const en: Content = {
   common: {
     skipToContent: "Skip to content",
     signIn: "Sign in",
-    getStarted: "Get started",
-    viewDocumentation: "View documentation",
+    getStarted: "Start Integration",
+    viewDocumentation: "View Documentation",
     placeholderRouteNote:
       "Placeholder routes will return to the dashboard once the docs and playground are published.",
     illustrativeNumbers:
@@ -35,214 +35,238 @@ export const en: Content = {
   nav: {
     brand: "Zonatic",
     signIn: "Sign in",
-    getStarted: "Get started",
+    getStarted: "Start Integration",
     mobileOpen: "Open menu",
     mobileClose: "Close menu",
     links: [
-      { label: "Product", href: "#zonas" },
-      { label: "Solutions", href: "#use-cases" },
-      { label: "Pricing", href: "#cost" },
+      { label: "Features", href: "#features" },
+      { label: "Data", href: "#data-sources" },
+      { label: "Use Case", href: "#use-cases" },
+      { label: "Documentation", href: "/docs" },
+      { label: "Pricing", href: "#pricing" },
     ],
   },
   hero: {
-    eyebrow: "LOCATION INTELLIGENCE FOR INDONESIA",
-    headline: "Turn your location data into",
-    headlineHighlight: "real insight.",
+    eyebrow: "LOCATION API FOR INDONESIA",
+    headline: "Indonesian location data,",
+    headlineHighlight: "ready for your application.",
     description:
-      "Understand location context, define zonas, and use geographic data directly in your application.",
-    primaryCta: "Try Zonatic",
-    secondaryCta: "View API documentation",
-    microRow: [
-      "Indonesian location data",
-      "Zonas",
-      "API & location rules",
+      "Access Indonesian administrative boundaries, postal codes, and location data through a single API that is fast, accurate, and ready to use.",
+    primaryCta: "Start Integration",
+    secondaryCta: "Explore Data",
+    stats: [
+      { label: "Provinces", value: "38" },
+      { label: "Regencies/Cities", value: "514" },
+      { label: "Districts", value: "7,285" },
+      { label: "Villages/Wards", value: "83,762" },
     ],
     imageAlt:
-      "Flat Zonatic illustration: Indonesian location data mapped into zonas and geographic context used by an application.",
+      "Map of Indonesia with administrative boundaries displayed over a navy background.",
   },
-  dataToIntel: {
-    eyebrow: "LOCATION DATA",
-    headline: "Bring your data.",
-    headlineHighlight: "Put it on the map.",
+  problem: {
+    eyebrow: "PROBLEM SOLVED",
+    headline: "Location data shouldn't be a burden for every developer.",
     description:
-      "Use location data you already have to understand its geographic context, see distribution patterns, and group locations to fit your needs.",
-    flowLabels: ["Dataset", "Enrichment process", "Location result"],
+      "Collecting Indonesian administrative boundary datasets, assembling the province–regency–district–village hierarchy, linking postal codes to areas, and maintaining data consistency requires significant time and cost. Zonatic eliminates this complexity by providing standardized Indonesian location data through a single API.",
     imageAlt:
-      "Zonatic enrichment flow illustration: a location dataset processed into a location result ready to analyse.",
+      "Visualization of GPS coordinates, administrative boundaries, and postal codes connected in one integrated system.",
   },
-  zonas: {
-    eyebrow: "ZONAS",
-    headline: "Define zonas that fit your business.",
+  dataSources: {
+    eyebrow: "DATA SOURCES",
+    headline: "From trusted data sources.",
     description:
-      "Combine administrative areas or custom polygons into zonas you can reuse for analysis, operations, and location-based rules.",
-    capabilities: [
+      "Zonatic builds location data from official, verifiable sources — not from unverified community data.",
+    sources: [
       {
-        label: "Administrative areas",
-        description: "Pick a province, city, district, or village.",
+        title: "Administrative Boundary Data",
+        description:
+          "Province, regency/city, district, and village/ward boundaries from official Ministry of Home Affairs (Kemendagri) data via region-id.",
+        iconKey: "map",
+        verified: true,
       },
       {
-        label: "Custom zonas",
-        description: "Use polygons shaped to your need.",
+        title: "Indonesian Postal Code Data",
+        description:
+          "Indonesian postal codes from Pos Indonesia mapped to administrative areas via postal-code-id.",
+        iconKey: "mail",
+        verified: true,
       },
       {
-        label: "Reusable zonas",
-        description: "Use the same zona for analysis and location-based rules.",
+        title: "Geographic Information",
+        description:
+          "Boundary coordinates, area centroids, and geographic metadata to support reverse geocoding and spatial analysis.",
+        iconKey: "globe",
+        verified: true,
       },
     ],
-    imageAlt:
-      "Zonatic zona editor illustration: administrative areas combined with a custom polygon into one zona.",
   },
-  api: {
-    eyebrow: "API & LOCATION RULES",
-    headline: "Make location context part of your business rules.",
+  features: {
+    eyebrow: "KEY FEATURES",
+    headline: "One API. Diverse needs.",
     description:
-      "Use location primitives to build applications, or define location-based rules through the UI and consume the results through the API.",
-    flow: ["LOCATION", "ZONATIC API", "ZONA", "RULE", "RESULT"],
-    request: {
-      method: "GET",
-      path: "/v1/zones/lookup?lat=-6.2088&lng=106.8456",
-      label: "Request",
-    },
+      "Zonatic provides a complete location data foundation for building location-based applications in Indonesia.",
+    features: [
+      {
+        title: "Administrative Boundary Data",
+        description:
+          "Access the complete Indonesian administrative hierarchy: 38 provinces, 514 regencies/cities, 7,285 districts, and 83,762 villages/wards with stable canonical codes.",
+        iconKey: "map",
+      },
+      {
+        title: "Indonesian Postal Codes",
+        description:
+          "Postal code lookup by area or coordinates, with many-to-many relationships to administrative boundaries for maximum accuracy.",
+        iconKey: "mail",
+      },
+      {
+        title: "Reverse Geocoding",
+        description:
+          "Convert GPS coordinates (latitude/longitude) into complete administrative context: province, regency/city, district, and village/ward.",
+        iconKey: "navigation",
+      },
+      {
+        title: "Developer Friendly",
+        description:
+          "REST API with OpenAPI documentation, SDKs for multiple languages, < 100ms response time, and 99.9% uptime.",
+        iconKey: "code",
+      },
+    ],
+  },
+  apiExample: {
+    eyebrow: "API EXAMPLE",
+    headline: "Integration in minutes.",
+    description:
+      "Simple REST API with standard JSON responses. Full documentation available in the developer portal.",
+    tabs: [
+      {
+        label: "cURL",
+        code: `curl -H "Authorization: Bearer ZN_API_KEY" \\
+  "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81"`,
+      },
+      {
+        label: "JavaScript",
+        code: `const response = await fetch(
+  "https://api.zonatic.id/v1/reverse-geocode?latitude=-6.19&longitude=106.81",
+  {
+    headers: {
+      "Authorization": "Bearer ZN_API_KEY",
+      "Content-Type": "application/json"
+    }
+  }
+);
+const data = await response.json();`,
+      },
+      {
+        label: "Python",
+        code: `import requests
+
+response = requests.get(
+    "https://api.zonatic.id/v1/reverse-geocode",
+    params={"latitude": -6.19, "longitude": 106.81},
+    headers={"Authorization": "Bearer ZN_API_KEY"}
+)
+data = response.json()`,
+      },
+    ],
     response: {
       label: "Response",
       json: `{
-  "zone_id": "ID-JK-3171",
-  "zone": "urban",
-  "score": 20,
-  "rules": [
-    "rule_a",
-    "rule_b",
-    "rule_c"
+  "latitude": -6.19,
+  "longitude": 106.81,
+  "matched": true,
+  "address": {
+    "province": {
+      "code": "31",
+      "name": "DKI Jakarta",
+      "level": 1
+    },
+    "regency_or_city": {
+      "code": "3171",
+      "name": "Central Jakarta Administrative City",
+      "level": 2
+    },
+    "district": {
+      "code": "317101",
+      "name": "Gambir District",
+      "level": 3
+    },
+    "village_or_ward": {
+      "code": "3171011001",
+      "name": "Gambir Village",
+      "level": 4
+    }
+  },
+  "areas": [
+    {"code": "31", "name": "DKI Jakarta", "level": "province"},
+    {"code": "3171", "name": "Central Jakarta Administrative City", "level": "regency"},
+    {"code": "317101", "name": "Gambir District", "level": "district"},
+    {"code": "3171011001", "name": "Gambir Village", "level": "village"}
   ]
 }`,
     },
-    rules: {
-      label: "Example rules from that response",
-      zoneLabel: "Zone",
-      zone: "Urban",
-      scoreLabel: "Score",
-      score: "+20",
-      items: [
-        { label: "Rule A", value: "matched", outcome: "positive" },
-        { label: "Rule B", value: "priority", outcome: "positive" },
-        { label: "Rule C", value: "applicable", outcome: "neutral" },
-      ],
-    },
-    disclaimer:
-      "Zonatic provides location and zona context. Business rules and decisions stay with your own application.",
   },
   useCases: {
-    eyebrow: "USE CASES",
-    headline: "Location intelligence across industries.",
+    eyebrow: "USE CASE",
+    headline: "Supporting various application types.",
     description:
-      "Use location data, zonas, and location-based rules to fit your business needs.",
+      "Zonatic supports various industries that require accurate and standardized Indonesian location data.",
     cases: [
       {
-        title: "Lending & Finance",
-        description: "Rules, eligibility, and location-based analysis.",
-        iconKey: "coins",
+        title: "E-commerce",
+        description:
+          "Shipping address validation, automatic shipping cost calculation, and service area coverage checking based on postal codes and administrative boundaries.",
+        iconKey: "shopping-cart",
       },
       {
-        title: "Retail",
-        description: "Area analysis and expansion potential.",
-        iconKey: "store",
+        title: "On-Demand Services",
+        description:
+          "Driver/courier matching with orders based on zones, service area validation, and travel time estimation based on administrative boundaries.",
+        iconKey: "navigation",
       },
       {
-        title: "Logistics",
-        description: "Service zonas and coverage areas.",
-        iconKey: "truck",
+        title: "Analytics & Research",
+        description:
+          "Demographic analysis per area, population density mapping, postal-code-based market analysis, and spatial data visualization.",
+        iconKey: "bar-chart",
       },
       {
-        title: "Marketing",
-        description: "Segmentation and targeting by area.",
-        iconKey: "target",
+        title: "Internal Systems",
+        description:
+          "Branch/outlet master location data validation, operational zone management, and CRM/ERP integration with location-based data.",
+        iconKey: "building",
       },
     ],
     disclaimer:
-      "The use cases above are examples of customer application, not Zonatic's feature scope.",
-  },
-  costEstimator: {
-    eyebrow: "LOCATION API COST",
-    headline: "Paying too much for location data?",
-    description:
-      "Use Indonesian location data with a more efficient approach.",
-    calculator: {
-      title: "Estimate your location API cost",
-      productLabel: "Location service",
-      productHint: "Pick the location service you call most often.",
-      requestsLabel: "Monthly requests",
-      requestsHint: "Use a preset or enter your own volume.",
-      presets: ["10K", "100K", "1M", "5M", "10M"],
-      plans: {
-        planFree: "Free",
-        planDeveloper: "Developer",
-        planGrowth: "Growth",
-        planBusiness: "Business",
-      },
-      columnProvider: "Estimated Google cost",
-      columnProviderNote: "Derived from monthly volume",
-      columnZonatic: "Zonatic",
-      columnZonaticNote: "Derived from plan",
-      skuNote:
-        "Google pricing varies by SKU and requested fields. This estimate uses {product}.",
-      rateNote:
-        "The comparison is converted at an assumed rate, not a live exchange rate.",
-      estimateBadge: "Estimate",
-      perMonthSuffix: "/month",
-      customPlanLabel: "Custom plan",
-      comparisonTitle: "Cost comparison",
-      savingsTitle: "Potential savings",
-      savingsNote: "Compared with the estimated {provider} cost at {volume}.",
-      higherNote: "The estimated {provider} cost is lower at {volume}.",
-      equalNote: "Estimated cost is equal",
-      comparisonUnavailable:
-        "The cost comparison cannot be calculated for this volume.",
-      requestVolumeUnit: "requests/month",
-      sourceNote: "Provider pricing checked {date}.",
-      emptyState:
-        "Enter your monthly request volume to see an estimated cost.",
-      disclaimer:
-        "Estimates are based on usage volume. Actual prices may differ by SKU, requested fields, volume tier, and usage configuration. Zonatic pricing shown here is still an internal hypothesis, not final pricing.",
-    },
-    explainer: {
-      title: "Zonatic is an additional layer, not a replacement.",
-      points: [
-        "Using Zonatic does not mean you have to leave your global provider.",
-        "Keep a global provider for the needs that genuinely require coverage, Places, or other services Zonatic does not provide.",
-        "For Indonesian location resolution that local data can already answer, Zonatic can be a more efficient layer.",
-      ],
-    },
-    cta: {
-      primary: "Try Zonatic",
-      secondary: "Start with your Indonesian location needs.",
-    },
+      "The use cases above are examples of potential applications, not a guarantee of features provided directly by Zonatic.",
   },
   finalCta: {
-    eyebrow: "ZONE · RULE · API",
-    headline: "Make your data more meaningful.",
+    eyebrow: "LOCATION API FOR INDONESIA",
+    headline: "Build your application with Indonesian location data.",
     description:
-      "Understand location context, shape zonas, and use geographic information directly in your application.",
-    primaryCta: "Start with Zonatic",
-    secondaryCta: "View API documentation",
+      "Start integrating today and access Indonesian administrative boundaries, postal codes, and location data through a single API that is fast and reliable.",
+    primaryCta: "Start Integration",
+    secondaryCta: "View Documentation",
   },
-footer: {
-    tagline: "Location intelligence infrastructure for Indonesia.",
+  footer: {
+    tagline: "Location API for Indonesia.",
     copyrightYear: "2026",
     copyright: "All rights reserved.",
     columns: [
       {
         title: "Product",
         links: [
-          { label: "Location Intelligence" },
-          { label: "Zonas" },
-          { label: "API" },
+          { label: "Administrative Boundary Data" },
+          { label: "Indonesian Postal Codes" },
+          { label: "Reverse Geocoding" },
+          { label: "Developer Tools" },
         ],
       },
       {
         title: "Developer",
         links: [
-          { label: "API Documentation" },
+          { label: "API Documentation", href: "/docs" },
           { label: "API Reference" },
+          { label: "Changelog" },
         ],
       },
       {
