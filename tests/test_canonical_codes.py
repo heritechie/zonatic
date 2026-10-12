@@ -23,7 +23,12 @@ from sqlalchemy.exc import DBAPIError, ProgrammingError
 from apps.api.database import SessionLocal
 from apps.api.dependencies import TEST_API_KEY
 from apps.api.main import app
-from tests.conftest import _apply_migration, _seed_test_api_key
+from tests.conftest import (
+    _apply_migration,
+    _seed_test_api_key,
+    apply_admin_code_constraints,
+    drop_admin_code_constraints,
+)
 
 client = TestClient(app)
 
@@ -83,7 +88,7 @@ def _constraint_exists(db, name: str) -> bool:
 
 
 def _ensure_canonical_check() -> None:
-    """Re-add the canonical-code CHECKs if a test left them dropped."""
+    """Re-add the code CHECKs if a test left them dropped."""
     with SessionLocal() as db:
         if not _constraint_exists(db, "administrative_areas_code_canonical"):
             db.execute(
@@ -92,7 +97,6 @@ def _ensure_canonical_check() -> None:
                     "administrative_areas_code_canonical CHECK (code !~ '\\.')"
                 )
             )
-            db.commit()
         if not _constraint_exists(db, "administrative_areas_parent_code_canonical"):
             db.execute(
                 text(
@@ -101,15 +105,22 @@ def _ensure_canonical_check() -> None:
                     "CHECK (parent_code IS NULL OR parent_code !~ '\\.')"
                 )
             )
-            db.commit()
+        apply_admin_code_constraints(db)
+        db.commit()
 
 
 def _drop_canonical_check(db) -> None:
-    """Drop the canonical-code CHECKs so dotted fixtures can be inserted.
+    """Drop the code CHECKs so dotted fixtures can be inserted.
 
-    A database created before this constraint existed accepted dotted codes, so
-    the fixture has to reproduce that pre-migration state for the migration
+    A database created before these constraints existed accepted dotted codes,
+    so the fixture has to reproduce that pre-migration state for the migration
     tests to mean anything. The migration is what puts the invariant back.
+
+    The schema hardening constraints from
+    supabase/migrations/20260101000010_schema_hardening.sql go with them. They
+    reject a dotted code on length alone, and a dotted parent also breaks the
+    parent prefix check, so leaving them in place would stop the fixture before
+    migration 0009 ever ran.
     """
     db.execute(
         text(
@@ -123,6 +134,7 @@ def _drop_canonical_check(db) -> None:
             "DROP CONSTRAINT IF EXISTS administrative_areas_parent_code_canonical"
         )
     )
+    drop_admin_code_constraints(db)
 
 
 def _insert_row(db, code: str, name: str, level: int, parent: str | None) -> None:

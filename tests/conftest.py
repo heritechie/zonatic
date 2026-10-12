@@ -43,6 +43,74 @@ def _verify_test_database_safety():
                 f"Protected database '{PROTECTED_DATABASE}' is explicitly blocked."
             )
 
+
+# DDL for the administrative code constraints introduced by
+# supabase/migrations/20260101000010_schema_hardening.sql.
+#
+# The test database is built from the inline schema below rather than from the
+# migration files, so the constraints are declared here too, and exported so
+# tests that legitimately need the pre-hardening state (the dotted-code fixtures
+# in tests/test_canonical_codes.py) can drop and restore them without each
+# keeping its own copy of the SQL.
+#
+# Keep these bodies free of a colon immediately followed by a word, exactly like
+# the migration, because they reach the database through text().
+ADMIN_CODE_CONSTRAINTS: tuple[tuple[str, str], ...] = (
+    (
+        "administrative_areas_code_level_length",
+        "CHECK ((level = 1 AND length(code) = 2) OR (level = 2 AND length(code) = 4) "
+        "OR (level = 3 AND length(code) = 6) OR (level = 4 AND length(code) = 10))",
+    ),
+    (
+        "administrative_areas_parent_level",
+        "CHECK ((level = 1 AND parent_code IS NULL) OR (level > 1 AND parent_code IS NOT NULL))",
+    ),
+    (
+        "administrative_areas_parent_prefix",
+        "CHECK (parent_code IS NULL OR starts_with(code, parent_code))",
+    ),
+)
+
+
+def admin_code_constraint_ddl() -> str:
+    """Statements that declare every administrative code constraint."""
+    return "\n".join(
+        stmt
+        for name, body in ADMIN_CODE_CONSTRAINTS
+        for stmt in (
+            f"ALTER TABLE administrative_areas DROP CONSTRAINT IF EXISTS {name};",
+            f"ALTER TABLE administrative_areas ADD CONSTRAINT {name} {body};",
+        )
+    )
+
+
+def drop_admin_code_constraints(db) -> None:
+    """Remove the administrative code constraints.
+
+    Needed only by fixtures that must write a shape the constraints reject, such
+    as the dotted codes that migration 0009 is supposed to repair. Always pair
+    with apply_admin_code_constraints afterwards so a failed test cannot leave
+    the invariant off for the rest of the session.
+    """
+    for name, _ in ADMIN_CODE_CONSTRAINTS:
+        db.execute(
+            text(f"ALTER TABLE administrative_areas DROP CONSTRAINT IF EXISTS {name}")
+        )
+
+
+def apply_admin_code_constraints(db) -> None:
+    """Re-declare the administrative code constraints if they are missing."""
+    for name, body in ADMIN_CODE_CONSTRAINTS:
+        exists = (
+            db.execute(
+                text("SELECT 1 FROM pg_constraint WHERE conname = :n"), {"n": name}
+            ).first()
+            is not None
+        )
+        if not exists:
+            db.execute(text(f"ALTER TABLE administrative_areas ADD CONSTRAINT {name} {body}"))
+
+
 Migration: str = """
 -- 0001: Enable PostGIS extension
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
@@ -156,6 +224,42 @@ ALTER TABLE administrative_areas
 ALTER TABLE administrative_areas
     ADD CONSTRAINT administrative_areas_parent_code_canonical
     CHECK (parent_code IS NULL OR parent_code !~ '\\.');
+
+-- 0010: schema hardening.
+-- Equivalent to supabase/migrations/20260101000010_schema_hardening.sql.
+-- Code length follows level, a child code starts with its parent, and a level 1
+-- row is a root. import_runs.level becomes nullable because one run publishes
+-- all four levels, and gains the repository and commit the rows came from.
+-- The redundant idx_postal_codes_code is dropped in favour of the UNIQUE
+-- constraint that already covers the column.
+
+ALTER TABLE import_runs ALTER COLUMN level DROP NOT NULL;
+ALTER TABLE import_runs ADD COLUMN IF NOT EXISTS source_repo VARCHAR(255);
+ALTER TABLE import_runs ADD COLUMN IF NOT EXISTS source_ref VARCHAR(100);
+
+""" + admin_code_constraint_ddl() + """
+
+DROP INDEX IF EXISTS idx_postal_codes_code;
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+CREATE INDEX IF NOT EXISTS administrative_areas_name_trgm_idx
+    ON administrative_areas USING GIN (name gin_trgm_ops);
+
+-- 20260101000011 postal-code-id Pos Indonesia importer
+CREATE TABLE IF NOT EXISTS postal_codes_staging (
+    id BIGSERIAL PRIMARY KEY,
+    run_id UUID NOT NULL REFERENCES import_runs(id) ON DELETE CASCADE,
+    row_number INTEGER NOT NULL,
+    postal_code VARCHAR(10),
+    village_code VARCHAR(20),
+    raw_feature JSONB NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ready' CHECK (status IN ('ready', 'invalid')),
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS postal_codes_staging_run_status_idx
+    ON postal_codes_staging (run_id, status);
 """
 
 
